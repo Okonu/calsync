@@ -10,23 +10,11 @@ use Inertia\Inertia;
 
 class SettingsController extends Controller
 {
-    /**
-     * Display the account settings page
-     *
-     * @return \Inertia\Response
-     */
     public function index()
     {
         return Inertia::render('Settings/Index');
     }
 
-    /**
-     * Update account color
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function updateAccountColor(Request $request, $id)
     {
         $request->validate([
@@ -47,13 +35,6 @@ class SettingsController extends Controller
         ]);
     }
 
-    /**
-     * Update account status
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function updateAccountStatus(Request $request, $id)
     {
         $request->validate([
@@ -74,19 +55,12 @@ class SettingsController extends Controller
         ]);
     }
 
-    /**
-     * Trigger sync for account
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function syncAccount($id)
     {
         $account = GoogleAccount::where('id', $id)
             ->where('user_id', auth()->id())
             ->firstOrFail();
 
-        // Dispatch sync job
         SyncGoogleCalendars::dispatch($account);
 
         return response()->json([
@@ -95,22 +69,14 @@ class SettingsController extends Controller
         ]);
     }
 
-    /**
-     * Delete account
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function deleteAccount($id)
     {
         $account = GoogleAccount::where('id', $id)
             ->where('user_id', auth()->id())
             ->firstOrFail();
 
-        // Delete associated calendars
         Calendar::where('google_account_id', $account->id)->delete();
 
-        // Delete the account
         $account->delete();
 
         return response()->json([

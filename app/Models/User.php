@@ -51,4 +51,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(GoogleAccount::class);
     }
+
+    public function bookingPage()
+    {
+        return $this->hasOne(BookingPage::class);
+    }
+
+    public function bookings()
+    {
+        return $this->hasManyThrough(Booking::class, BookingPage::class);
+    }
 }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BookingController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\SettingsController;
@@ -58,3 +59,15 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/api/accounts/{id}/sync', [SettingsController::class, 'syncAccount']);
     Route::delete('/api/accounts/{id}', [SettingsController::class, 'deleteAccount']);
 });
+
+// Booking
+Route::middleware(['auth'])->group(function () {
+    Route::get('/booking/settings', [BookingController::class, 'settings'])->name('booking.settings');
+    Route::post('/booking/settings', [BookingController::class, 'updateSettings'])->name('booking.update-settings');
+    Route::get('/booking/list', [BookingController::class, 'listBookings'])->name('booking.list');
+});
+
+Route::get('/book/{slug}', [BookingController::class, 'show'])->name('booking.show');
+Route::get('/book/{slug}/slots', [BookingController::class, 'getAvailableSlots'])->name('booking.slots');
+Route::post('/book/{slug}', [BookingController::class, 'createBooking'])->name('booking.create');
+Route::post('/book/cancel/{uid}', [BookingController::class, 'cancelBooking'])->name('booking.cancel');

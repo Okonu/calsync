@@ -22,7 +22,7 @@ function checkScreenWidth() {
 </script>
 
 <template>
-    <Head title="Calendar Aggregator" />
+    <Head title="CalSync" />
 
     <div style="position: relative; min-height: 100vh; background-color: #f3f4f6;">
         <!-- Navigation -->
@@ -49,7 +49,7 @@ function checkScreenWidth() {
 
             <!-- Heading -->
             <div style="text-align: center; margin-top: 1.5rem;">
-                <h1 style="font-size: 2.25rem; line-height: 2.5rem; font-weight: 800; color: #111827;">Calendar Aggregator</h1>
+                <h1 style="font-size: 2.25rem; line-height: 2.5rem; font-weight: 800; color: #111827;">CalSync</h1>
                 <p style="margin-top: 1rem; font-size: 1.25rem; line-height: 1.75rem; color: #4b5563;">
                     One place for all your calendars
                 </p>
@@ -132,7 +132,7 @@ function checkScreenWidth() {
 
             <!-- Footer -->
             <div style="margin-top: 4rem; border-top: 1px solid #e5e7eb; padding-top: 2rem; text-align: center; font-size: 0.875rem; color: #6b7280;">
-                <p>Calendar Aggregator &copy; {{ new Date().getFullYear() }}</p>
+                <p>CalSync &copy; {{ new Date().getFullYear() }}</p>
             </div>
         </div>
     </div>

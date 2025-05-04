@@ -71,7 +71,7 @@ const accountsWithCalendarCount = computed(() => {
                 <!-- Welcome Section -->
                 <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg mb-6">
                     <div class="p-6">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Welcome to Calendar Aggregator</h3>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Welcome to CalSync</h3>
                         <p class="text-gray-600">
                             Your central hub for managing all your Google calendars in one place.
                         </p>
@@ -170,6 +170,12 @@ const accountsWithCalendarCount = computed(() => {
                                     class="block w-full text-center py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded">
                                     Manage Settings
                                 </Link>
+
+                                <Link
+                                    href="/booking/settings"
+                                    class="block w-full text-center py-2 border border-indigo-600 text-indigo-600 hover:bg-indigo-50 rounded">
+                                    Manage Booking Page
+                                </Link>
                             </div>
                         </div>
                     </div>
@@ -181,7 +187,7 @@ const accountsWithCalendarCount = computed(() => {
                         <h3 class="text-lg font-semibold text-gray-800 mb-2">Getting Started</h3>
                         <ul class="mt-4 space-y-2 text-gray-600 list-disc pl-5">
                             <li>Connect your Google account using the "Connect" button above.</li>
-                            <li>Your calendars will automatically sync with Calendar Aggregator.</li>
+                            <li>Your calendars will automatically sync with CalSync.</li>
                             <li>Go to the Calendar view to see all your events in one place.</li>
                             <li>Add multiple Google accounts to see all your calendars together.</li>
                         </ul>

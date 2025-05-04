@@ -34,12 +34,6 @@ class GoogleAuthController extends Controller
         '#E91E63', // Pink
     ];
 
-    /**
-     * Generate a unique color for a new account
-     *
-     * @param int $userId
-     * @return string
-     */
     protected function generateUniqueColor(int $userId): string
     {
         $usedColors = GoogleAccount::where('user_id', $userId)
@@ -55,9 +49,6 @@ class GoogleAuthController extends Controller
         return '#' . str_pad(dechex(mt_rand(0, 0xFFFFFF)), 6, '0', STR_PAD_LEFT);
     }
 
-    /**
-     * Redirect the user to the Google authentication page for login/registration.
-     */
     public function redirect()
     {
         session(['auth_flow' => 'primary']);
@@ -73,9 +64,6 @@ class GoogleAuthController extends Controller
             ->redirect();
     }
 
-    /**
-     * Handle the callback from Google for login/registration.
-     */
     public function callback(Request $request)
     {
         try {
@@ -170,9 +158,6 @@ class GoogleAuthController extends Controller
         }
     }
 
-    /**
-     * Redirect the user to the Google authentication page for connecting additional accounts.
-     */
     public function redirectConnect()
     {
         Log::info('Redirecting to Google for connecting additional account', [
@@ -197,9 +182,6 @@ class GoogleAuthController extends Controller
         return redirect($url);
     }
 
-    /**
-     * Handle the callback from Google for connecting additional accounts.
-     */
     public function callbackConnect(Request $request)
     {
         try {

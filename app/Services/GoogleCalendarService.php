@@ -190,4 +190,80 @@ class GoogleCalendarService
 
         return $colorId && isset($colorMap[$colorId]) ? $colorMap[$colorId] : null;
     }
+
+    public function createEvent(string $calendarId, array $eventDetails)
+    {
+        try {
+            $event = new \Google\Service\Calendar\Event();
+            $event->setSummary($eventDetails['summary']);
+
+            if (isset($eventDetails['description'])) {
+                $event->setDescription($eventDetails['description']);
+            }
+
+            if (isset($eventDetails['location'])) {
+                $event->setLocation($eventDetails['location']);
+            }
+
+            $start = new \Google\Service\Calendar\EventDateTime();
+            $start->setDateTime($eventDetails['start']);
+            $event->setStart($start);
+
+            $end = new \Google\Service\Calendar\EventDateTime();
+            $end->setDateTime($eventDetails['end']);
+            $event->setEnd($end);
+
+            if (!empty($eventDetails['attendees'])) {
+                $attendeesArray = [];
+                foreach ($eventDetails['attendees'] as $attendee) {
+                    $attendeeObj = new \Google\Service\Calendar\EventAttendee();
+                    $attendeeObj->setEmail($attendee['email']);
+                    if (isset($attendee['name'])) {
+                        $attendeeObj->setDisplayName($attendee['name']);
+                    }
+                    $attendeesArray[] = $attendeeObj;
+                }
+                $event->setAttendees($attendeesArray);
+            }
+
+            if (!empty($eventDetails['conferenceData'])) {
+                $event->setConferenceData($eventDetails['conferenceData']);
+
+                return $this->service->events->insert(
+                    $calendarId,
+                    $event,
+                    ['conferenceDataVersion' => 1]
+                );
+            }
+
+            return $this->service->events->insert($calendarId, $event);
+        } catch (\Exception $e) {
+            \Log::error('Failed to create event: ' . $e->getMessage(), [
+                'calendar_id' => $calendarId,
+                'event_details' => $eventDetails,
+            ]);
+
+            throw $e;
+        }
+    }
+
+    public function createMeetLink()
+    {
+        return null;
+    }
+
+    public function deleteEvent(string $calendarId, string $eventId)
+    {
+        try {
+            $this->service->events->delete($calendarId, $eventId);
+            return true;
+        } catch (\Exception $e) {
+            \Log::error('Failed to delete event: ' . $e->getMessage(), [
+                'calendar_id' => $calendarId,
+                'event_id' => $eventId,
+            ]);
+
+            throw $e;
+        }
+    }
 }

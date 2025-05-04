@@ -10,25 +10,17 @@ use Inertia\Inertia;
 
 class CalendarController extends Controller
 {
-    /**
-     * Display the calendar interface.
-     *
-     * @return \Inertia\Response
-     */
     public function index()
     {
-        // Get all active Google accounts for the authenticated user
         $accounts = GoogleAccount::where('user_id', auth()->id())
             ->where('is_active', true)
             ->get();
 
-        // If there are no active accounts, redirect to connect a Google account
         if ($accounts->isEmpty()) {
             return redirect()->route('google.connect.redirect')
                 ->with('info', 'Please connect a Google account to view your calendars');
         }
 
-        // Get all calendars from all accounts
         $calendars = Calendar::whereIn('google_account_id', $accounts->pluck('id'))
             ->with('googleAccount')
             ->get()
@@ -50,11 +42,6 @@ class CalendarController extends Controller
         ]);
     }
 
-    /**
-     * Get all Google accounts for the authenticated user.
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function getAccounts()
     {
         $accounts = GoogleAccount::where('user_id', auth()->id())
@@ -64,11 +51,6 @@ class CalendarController extends Controller
         return response()->json($accounts);
     }
 
-    /**
-     * Get all calendars for the authenticated user.
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function getCalendars()
     {
         $accounts = GoogleAccount::where('user_id', auth()->id())
@@ -82,19 +64,13 @@ class CalendarController extends Controller
         return response()->json($calendars);
     }
 
-    /**
-     * Get events based on date range and optional calendar filters.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function events(Request $request)
     {
         $request->validate([
             'start' => 'required|date',
             'end' => 'required|date',
             'calendars' => 'sometimes|array',
-            'accounts' => 'sometimes|array', // Add ability to filter by accounts
+            'accounts' => 'sometimes|array',
             'limit' => 'sometimes|integer|min:1',
         ]);
 
@@ -102,32 +78,27 @@ class CalendarController extends Controller
         $accountIds = $request->input('accounts', []);
         $limit = $request->input('limit');
 
-        // Get all user accounts
         $userAccounts = GoogleAccount::where('user_id', auth()->id())
             ->where('is_active', true);
 
-        // Filter by specific accounts if requested
         if (!empty($accountIds)) {
             $userAccounts->whereIn('id', $accountIds);
         }
 
         $userAccountIds = $userAccounts->pluck('id');
 
-        // If no specific calendars selected, get all visible calendars from selected accounts
         if (empty($calendarIds)) {
             $calendarQuery = Calendar::whereIn('google_account_id', $userAccountIds)
                 ->where('is_visible', true);
 
             $calendarIds = $calendarQuery->pluck('id')->toArray();
         } else {
-            // Ensure the user only gets calendars they actually have access to
             $calendarQuery = Calendar::whereIn('id', $calendarIds)
                 ->whereIn('google_account_id', $userAccountIds);
 
             $calendarIds = $calendarQuery->pluck('id')->toArray();
         }
 
-        // Fetch events
         $query = Event::with(['calendar.googleAccount' => function($query) {
             $query->select('id', 'name', 'email', 'color');
         }])
@@ -168,15 +139,8 @@ class CalendarController extends Controller
         return response()->json($events);
     }
 
-    /**
-     * Get detailed information about a specific event.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function eventDetails($id)
     {
-        // Ensure the user can only access events from their accounts
         $userAccountIds = GoogleAccount::where('user_id', auth()->id())
             ->where('is_active', true)
             ->pluck('id');
@@ -212,13 +176,6 @@ class CalendarController extends Controller
         ]);
     }
 
-    /**
-     * Update calendar visibility.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\Calendar  $calendar
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function updateCalendarVisibility(Request $request, Calendar $calendar)
     {
         $request->validate([
@@ -241,13 +198,6 @@ class CalendarController extends Controller
         ]);
     }
 
-    /**
-     * Update calendar color.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\Calendar  $calendar
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function updateCalendarColor(Request $request, Calendar $calendar)
     {
         $request->validate([
@@ -270,12 +220,6 @@ class CalendarController extends Controller
         ]);
     }
 
-    /**
-     * Calculate a contrasting text color (black or white) based on background color.
-     *
-     * @param  string  $hexColor
-     * @return string
-     */
     private function getTextColor($hexColor)
     {
         $hex = ltrim($hexColor, '#');
