@@ -14,7 +14,6 @@ use Inertia\Inertia;
 */
 
 Route::middleware('guest')->group(function () {
-    // Welcome page
     Route::get('/', function () {
         return Inertia::render('Welcome', [
             'canLogin' => true,
@@ -30,32 +29,28 @@ Route::middleware('guest')->group(function () {
     Route::get('auth/google/callback', [GoogleAuthController::class, 'callback'])->name('google.callback');
 });
 
-// Authenticated routes
 Route::middleware(['auth'])->group(function () {
-    // Dashboard
     Route::get('/dashboard', function () {
         return Inertia::render('Dashboard');
     })->name('dashboard');
 
-    // Calendar view and API
+    // Calendar
     Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar');
     Route::get('/api/events', [CalendarController::class, 'events']);
     Route::get('/api/events/{id}', [CalendarController::class, 'eventDetails']);
     Route::patch('/api/calendars/{calendar}/visibility', [CalendarController::class, 'updateCalendarVisibility']);
     Route::patch('/api/calendars/{calendar}/color', [CalendarController::class, 'updateCalendarColor']);
 
-    // API routes for dashboard
     Route::get('/api/accounts', [CalendarController::class, 'getAccounts']);
     Route::get('/api/calendars', [CalendarController::class, 'getCalendars']);
 
     Route::get('connect/google', [GoogleAuthController::class, 'redirectConnect'])->name('google.connect.redirect');
     Route::get('connect/google/callback', [GoogleAuthController::class, 'callbackConnect'])->name('google.connect.callback');
 
-    // Logout
     Route::post('/logout', [GoogleAuthController::class, 'logout'])->name('logout');
 });
 
-// Settings routes
+// Settings
 Route::middleware(['auth'])->group(function () {
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings');
     Route::patch('/api/accounts/{id}/color', [SettingsController::class, 'updateAccountColor']);
