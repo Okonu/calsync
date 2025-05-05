@@ -187,7 +187,7 @@ const accountsWithCalendarCount = computed(() => {
                         <h3 class="text-lg font-semibold text-gray-800 mb-2">Getting Started</h3>
                         <ul class="mt-4 space-y-2 text-gray-600 list-disc pl-5">
                             <li>Connect your Google account using the "Connect" button above.</li>
-                            <li>Your calendars will automatically sync with CalSync.</li>
+                            <li>Your calendars will automatically sync with Synqs.</li>
                             <li>Go to the Calendar view to see all your events in one place.</li>
                             <li>Add multiple Google accounts to see all your calendars together.</li>
                         </ul>
