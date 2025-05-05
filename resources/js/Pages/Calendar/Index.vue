@@ -1,7 +1,6 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
-import { useForm } from '@inertiajs/vue3';
+import {computed, onMounted, ref, watch} from 'vue';
+import {Head, Link} from '@inertiajs/vue3';
 import axios from 'axios';
 import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -44,6 +43,14 @@ const urls = {
     accountSettings: '/app/account-settings'
 };
 
+const localTimezone = computed(() => {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (timezone.includes('/')) {
+        return timezone.split('/').pop().replace(/_/g, ' ');
+    }
+    return timezone;
+});
+
 const calendarOptions = computed(() => ({
     plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, momentPlugin],
     initialView: selectedView.value,
@@ -66,6 +73,7 @@ const calendarOptions = computed(() => ({
         }
     },
     height: 'auto',
+    timeZone: 'local',
 }));
 
 function fetchEvents(info, successCallback, failureCallback) {
@@ -228,9 +236,9 @@ onMounted(() => {
                                     </svg>
                                     Add Account
                                 </a>
-                                <Link :href="urls.accountSettings" class="text-sm text-indigo-600 hover:text-indigo-500">
-                                    Manage
-                                </Link>
+<!--                                <Link :href="urls.accountSettings" class="text-sm text-indigo-600 hover:text-indigo-500">-->
+<!--                                    Manage-->
+<!--                                </Link>-->
                             </div>
                         </div>
 
@@ -348,6 +356,13 @@ onMounted(() => {
                             <!-- Loading Overlay -->
                             <div v-if="isLoading" class="absolute inset-0 bg-white/50 flex items-center justify-center rounded-lg z-10">
                                 <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+                            </div>
+
+                            <div class="mb-2 text-sm text-gray-500 flex justify-end items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span>Times shown in {{ localTimezone }}</span>
                             </div>
 
                             <!-- Calendar Component -->

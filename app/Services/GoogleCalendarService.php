@@ -10,6 +10,7 @@ use Exception;
 use Google\Client as GoogleClient;
 use Google\Service\Calendar as GoogleCalendar;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class GoogleCalendarService
 {
@@ -110,6 +111,7 @@ class GoogleCalendarService
                     'singleEvents' => true,
                     'orderBy' => 'startTime',
                     'maxResults' => 2500,
+                    'timeZone' => 'UTC',
                 ]
             );
 
@@ -194,6 +196,8 @@ class GoogleCalendarService
     public function createEvent(string $calendarId, array $eventDetails)
     {
         try {
+            Log::debug('Creating event with calendar ID', ['calendar_id' => $calendarId]);
+
             $event = new \Google\Service\Calendar\Event();
             $event->setSummary($eventDetails['summary']);
 
@@ -207,10 +211,12 @@ class GoogleCalendarService
 
             $start = new \Google\Service\Calendar\EventDateTime();
             $start->setDateTime($eventDetails['start']);
+            $start->setTimeZone('UTC');
             $event->setStart($start);
 
             $end = new \Google\Service\Calendar\EventDateTime();
             $end->setDateTime($eventDetails['end']);
+            $end->setTimeZone('UTC');
             $event->setEnd($end);
 
             if (!empty($eventDetails['attendees'])) {
@@ -226,19 +232,30 @@ class GoogleCalendarService
                 $event->setAttendees($attendeesArray);
             }
 
-            if (!empty($eventDetails['conferenceData'])) {
-                $event->setConferenceData($eventDetails['conferenceData']);
-
-                return $this->service->events->insert(
-                    $calendarId,
-                    $event,
-                    ['conferenceDataVersion' => 1]
-                );
+            if ($calendarId === 'primary' || strpos($calendarId, '@gmail.com') !== false) {
+                $actualCalendarId = 'primary';
+                Log::debug('Using primary calendar instead of email address');
+            } else {
+                $actualCalendarId = $calendarId;
             }
 
-            return $this->service->events->insert($calendarId, $event);
+            if (!empty($eventDetails['conferenceData'])) {
+                $conferenceData = new \Google\Service\Calendar\ConferenceData();
+                $conferenceRequest = new \Google\Service\Calendar\CreateConferenceRequest();
+                $conferenceRequest->setRequestId($eventDetails['conferenceData']['createRequest']['requestId']);
+                $conferenceData->setCreateRequest($conferenceRequest);
+                $event->setConferenceData($conferenceData);
+            }
+
+            $result = $this->service->events->insert(
+                $actualCalendarId,
+                $event,
+                ['conferenceDataVersion' => 1]
+            );
+
+            return $result;
         } catch (\Exception $e) {
-            \Log::error('Failed to create event: ' . $e->getMessage(), [
+            Log::error('Failed to create event: ' . json_encode($e->getMessage()), [
                 'calendar_id' => $calendarId,
                 'event_details' => $eventDetails,
             ]);
@@ -247,9 +264,14 @@ class GoogleCalendarService
         }
     }
 
-    public function createMeetLink()
+    public function getTokenInfo()
     {
-        return null;
+        try {
+            $tokenInfo = $this->client->verifyIdToken();
+            return $tokenInfo;
+        } catch (\Exception $e) {
+            return ['error' => $e->getMessage()];
+        }
     }
 
     public function deleteEvent(string $calendarId, string $eventId)

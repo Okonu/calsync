@@ -57,6 +57,8 @@ class GoogleAuthController extends Controller
             ->scopes([
                 'https://www.googleapis.com/auth/userinfo.email',
                 'https://www.googleapis.com/auth/userinfo.profile',
+                'https://www.googleapis.com/auth/calendar',
+                'https://www.googleapis.com/auth/calendar.events',
                 'https://www.googleapis.com/auth/calendar.readonly',
                 'https://www.googleapis.com/auth/calendar.events.readonly',
             ])
@@ -171,7 +173,7 @@ class GoogleAuthController extends Controller
             'client_id' => config('services.google.client_id'),
             'redirect_uri' => env('GOOGLE_CONNECT_REDIRECT_URI'),
             'response_type' => 'code',
-            'scope' => 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events.readonly email profile',
+            'scope' => 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events.readonly email profile',
             'access_type' => 'offline',
             'prompt' => 'consent',
             'state' => 'connect_flow_' . auth()->id(),

@@ -44,21 +44,64 @@ const durationOptions = [
     { value: 120, label: '2 hours' },
 ];
 
+// Generate time options in local time
 const timeOptions = [];
 for (let hour = 0; hour < 24; hour++) {
     for (let minute = 0; minute < 60; minute += 30) {
         const h = hour.toString().padStart(2, '0');
         const m = minute.toString().padStart(2, '0');
-        timeOptions.push({ value: `${h}:${m}`, label: formatTimeForDisplay(`${h}:${m}`) });
+        const timeValue = `${h}:${m}`;
+        timeOptions.push({
+            value: timeValue, // Store in 24h format for the server
+            label: formatTimeForDisplay(timeValue) // Display in 12h format for the user
+        });
     }
 }
 
-function formatTimeForDisplay(time) {
-    const [hours, minutes] = time.split(':');
-    const h = parseInt(hours);
-    const suffix = h >= 12 ? 'PM' : 'AM';
-    const displayHour = (h % 12) || 12;
-    return `${displayHour}:${minutes} ${suffix}`;
+// Format time for display in user's local timezone
+function formatTimeForDisplay(timeString) {
+    // Create a date object using today's date and the time string
+    const today = new Date();
+    const [hours, minutes] = timeString.split(':');
+
+    // Set the time components
+    today.setHours(parseInt(hours, 10));
+    today.setMinutes(parseInt(minutes, 10));
+
+    // Format time in 12-hour format with AM/PM
+    return today.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+// Convert UTC time to local time for display
+function utcToLocal(timeString) {
+    if (!timeString) return '';
+
+    // Create a date using the current date and the UTC time
+    const date = new Date();
+    const [hours, minutes] = timeString.split(':');
+
+    // Set UTC time
+    date.setUTCHours(parseInt(hours, 10));
+    date.setUTCMinutes(parseInt(minutes, 10));
+
+    // Format time in 24-hour format for form value
+    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+}
+
+// Convert local time to UTC for sending to server
+function localToUtc(timeString) {
+    if (!timeString) return '';
+
+    // Create a date using the current date and the local time
+    const date = new Date();
+    const [hours, minutes] = timeString.split(':');
+
+    // Set local time
+    date.setHours(parseInt(hours, 10));
+    date.setMinutes(parseInt(minutes, 10));
+
+    // Format time in 24-hour UTC format
+    return `${date.getUTCHours().toString().padStart(2, '0')}:${date.getUTCMinutes().toString().padStart(2, '0')}`;
 }
 
 function toggleDay(dayValue) {
@@ -91,7 +134,16 @@ function copyBookingUrl() {
 }
 
 function submit() {
-    form.post(route('booking.update-settings'));
+    const formData = { ...form };
+    formData.start_time = localToUtc(form.start_time);
+    formData.end_time = localToUtc(form.end_time);
+
+    formData.post(route('booking.update-settings'));
+}
+
+if (props.bookingPage) {
+    form.start_time = utcToLocal(props.bookingPage.start_time);
+    form.end_time = utcToLocal(props.bookingPage.end_time);
 }
 </script>
 
@@ -246,7 +298,7 @@ function submit() {
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label for="start_time" class="block text-sm font-medium text-gray-700">Start Time</label>
+                                    <label for="start_time" class="block text-sm font-medium text-gray-700">Start Time (Your Local Time)</label>
                                     <select
                                         id="start_time"
                                         v-model="form.start_time"
@@ -259,7 +311,7 @@ function submit() {
                                 </div>
 
                                 <div>
-                                    <label for="end_time" class="block text-sm font-medium text-gray-700">End Time</label>
+                                    <label for="end_time" class="block text-sm font-medium text-gray-700">End Time (Your Local Time)</label>
                                     <select
                                         id="end_time"
                                         v-model="form.end_time"

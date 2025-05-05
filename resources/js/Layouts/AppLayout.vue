@@ -17,6 +17,8 @@ const showingNavigationDropdown = ref(false);
 const urls = {
     dashboard: '/dashboard',
     calendar: '/calendar',
+    bookingSettings: '/booking/settings',
+    bookingList: '/booking/list',
     googleConnectRedirect: '/connect/google',
     logout: '/logout'
 };
@@ -71,6 +73,44 @@ const logout = () => {
                                 <NavLink :href="urls.calendar" :active="isCurrentPath(urls.calendar)">
                                     Calendar
                                 </NavLink>
+
+                                <!-- Booking Dropdown -->
+                                <div class="hidden sm:flex sm:items-center">
+                                    <div class="relative ml-4">
+                                        <Dropdown align="left" width="48">
+                                            <template #trigger>
+                                                <span class="inline-flex rounded-md">
+                                                    <button
+                                                        type="button"
+                                                        class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150"
+                                                        :class="[isCurrentPath(urls.bookingSettings) || isCurrentPath(urls.bookingList) ? 'text-gray-900' : 'text-gray-500']"
+                                                    >
+                                                        Booking
+                                                        <svg
+                                                            class="ml-2 -mr-0.5 h-4 w-4"
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            viewBox="0 0 24 24"
+                                                            fill="none"
+                                                            stroke-width="1.5"
+                                                            stroke="currentColor"
+                                                        >
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                                                        </svg>
+                                                    </button>
+                                                </span>
+                                            </template>
+
+                                            <template #content>
+                                                <DropdownLink :href="urls.bookingSettings">
+                                                    Booking Settings
+                                                </DropdownLink>
+                                                <DropdownLink :href="urls.bookingList">
+                                                    View Bookings
+                                                </DropdownLink>
+                                            </template>
+                                        </Dropdown>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -134,6 +174,14 @@ const logout = () => {
                         </ResponsiveNavLink>
                         <ResponsiveNavLink :href="urls.calendar" :active="isCurrentPath(urls.calendar)">
                             Calendar
+                        </ResponsiveNavLink>
+
+                        <!-- Mobile Booking Links -->
+                        <ResponsiveNavLink :href="urls.bookingSettings" :active="isCurrentPath(urls.bookingSettings)">
+                            Booking Settings
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink :href="urls.bookingList" :active="isCurrentPath(urls.bookingList)">
+                            View Bookings
                         </ResponsiveNavLink>
                     </div>
 

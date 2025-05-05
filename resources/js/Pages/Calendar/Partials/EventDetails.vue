@@ -135,15 +135,15 @@ const textColor = computed(() => {
                                     </div>
 
                                     <!-- Attendees -->
-                                    <div v-if="event.attendees && event.attendees.length > 0" class="flex">
-                                        <UserIcon class="h-5 w-5 text-gray-400 mr-2" />
-                                        <div>
-                                            <div class="font-medium">Attendees</div>
-                                            <div class="text-sm text-gray-500">
-                                                {{ event.attendees.length }} people
-                                            </div>
-                                        </div>
-                                    </div>
+<!--                                    <div v-if="event.attendees && event.attendees.length > 0" class="flex">-->
+<!--                                        <UserIcon class="h-5 w-5 text-gray-400 mr-2" />-->
+<!--                                        <div>-->
+<!--                                            <div class="font-medium">Attendees</div>-->
+<!--                                            <div class="text-sm text-gray-500">-->
+<!--                                                {{ event.attendees.length }} people-->
+<!--                                            </div>-->
+<!--                                        </div>-->
+<!--                                    </div>-->
                                 </div>
 
                                 <!-- Description -->

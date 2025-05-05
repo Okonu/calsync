@@ -98,18 +98,41 @@ async function submitBooking() {
 
     try {
         const response = await axios.post(`/book/${props.bookingPage.slug}`, bookingForm.value);
-        bookingData.value = response.data.booking;
-        bookingConfirmed.value = true;
-        currentStep.value = 3;
+
+        if (response.data && response.data.booking) {
+            bookingData.value = response.data.booking;
+            bookingConfirmed.value = true;
+            currentStep.value = 3;
+        } else {
+            console.error('Unexpected response format:', response.data);
+            throw new Error('Booking was not confirmed');
+        }
     } catch (error) {
         if (error.response?.data?.errors) {
             formErrors.value = error.response.data.errors;
         } else {
             console.error('Error creating booking:', error);
+            formErrors.value = { general: ['Failed to create booking. Please try again.'] };
         }
     } finally {
         isSubmitting.value = false;
     }
+}
+
+function resetBooking() {
+    bookingForm.value = {
+        name: '',
+        email: '',
+        notes: '',
+        date: '',
+        time: '',
+    };
+    selectedDate.value = '';
+    selectedSlot.value = null;
+    availableSlots.value = [];
+    bookingConfirmed.value = false;
+    currentStep.value = 1;
+    formErrors.value = {};
 }
 
 function formatTimeDisplay(timeString) {
@@ -331,9 +354,18 @@ watch(selectedDate, (newDate) => {
 
                         <div class="text-center">
                             <p class="text-sm text-gray-500">A calendar invitation has been sent to {{ bookingForm.email }}</p>
+
+                            <!-- Cancel Booking Link -->
+                            <p class="mt-2 text-sm text-gray-500">
+                                Need to make changes?
+                                <a :href="`/book/cancel/${bookingData.uid}`" class="text-indigo-600 hover:underline">
+                                    Cancel this booking
+                                </a>
+                            </p>
+
                             <div class="mt-4">
                                 <button
-                                    @click="window.location.reload()"
+                                    @click="resetBooking"
                                     class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                 >
                                     Book Another Time

@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\BookingCancellation;
+use App\Mail\BookingConfirmation;
 use App\Models\User;
 use App\Models\Calendar;
 use App\Models\Event;
@@ -11,6 +13,7 @@ use App\Models\BookingPage;
 use App\Services\GoogleCalendarService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Log;
@@ -117,7 +120,9 @@ class BookingController extends Controller
         ]);
 
         $bookingPage = BookingPage::where('slug', $slug)->firstOrFail();
-        $date = Carbon::parse($request->date);
+
+        // Convert the date to UTC for consistent calculations
+        $date = Carbon::parse($request->date)->setTimezone('UTC');
 
         $dayOfWeek = $date->dayOfWeek;
         if (!in_array($dayOfWeek, $bookingPage->available_days)) {
@@ -138,14 +143,15 @@ class BookingController extends Controller
             ? $bookingPage->selected_calendars
             : $allCalendars;
 
-        $startOfDay = $date->copy()->setTimeFromTimeString($bookingPage->start_time);
-        $endOfDay = $date->copy()->setTimeFromTimeString($bookingPage->end_time);
+        // Convert booking page time settings to UTC for the given date
+        $startOfDay = Carbon::parse($date->format('Y-m-d') . ' ' . $bookingPage->start_time, 'UTC');
+        $endOfDay = Carbon::parse($date->format('Y-m-d') . ' ' . $bookingPage->end_time, 'UTC');
 
+        // Get events that overlap with this date in UTC
         $events = Event::whereIn('calendar_id', $selectedCalendars)
-            ->whereDate('starts_at', $date)
-            ->orWhere(function($query) use ($date, $selectedCalendars) {
-                $query->whereIn('calendar_id', $selectedCalendars)
-                    ->whereDate('ends_at', $date);
+            ->where(function($query) use ($date) {
+                $query->whereDate('starts_at', $date)
+                    ->orWhereDate('ends_at', $date);
             })
             ->get();
 
@@ -172,9 +178,11 @@ class BookingController extends Controller
             $isAvailable = true;
 
             foreach ($events as $event) {
-                $eventStart = Carbon::parse($event->starts_at);
-                $eventEnd = Carbon::parse($event->ends_at);
+                // Ensure event times are in UTC for comparison
+                $eventStart = Carbon::parse($event->starts_at)->setTimezone('UTC');
+                $eventEnd = Carbon::parse($event->ends_at)->setTimezone('UTC');
 
+                // Check for overlap
                 if (max($slotStartWithBuffer, $eventStart) < min($slotEndWithBuffer, $eventEnd)) {
                     $isAvailable = false;
 
@@ -250,40 +258,114 @@ class BookingController extends Controller
 
         try {
             $googleCalendarService = new GoogleCalendarService($googleAccount);
-            $meetLink = null;
-
-            if ($bookingPage->include_meet) {
-                $meetLink = $googleCalendarService->createMeetLink();
-            }
 
             $eventDetails = [
                 'summary' => "Meeting with {$request->name}",
                 'description' => $request->notes ?? '',
-                'location' => $meetLink ?? '',
+                'location' => '',
                 'start' => $startTime->toRfc3339String(),
                 'end' => $endTime->toRfc3339String(),
                 'attendees' => [
                     ['email' => $request->email, 'name' => $request->name],
                     ['email' => $googleAccount->email, 'name' => $googleAccount->name],
                 ],
-                'conferenceData' => $meetLink ? [
+                'conferenceData' => $bookingPage->include_meet ? [
                     'createRequest' => ['requestId' => Str::uuid()->toString()],
                 ] : null,
             ];
 
             $googleEvent = $googleCalendarService->createEvent($calendar->google_id, $eventDetails);
 
+            $meetLink = null;
+            if ($bookingPage->include_meet && $googleEvent->getConferenceData()) {
+                $conferenceData = $googleEvent->getConferenceData();
+                if ($conferenceData->getEntryPoints()) {
+                    foreach ($conferenceData->getEntryPoints() as $entryPoint) {
+                        if ($entryPoint->getEntryPointType() === 'video') {
+                            $meetLink = $entryPoint->getUri();
+                            break;
+                        }
+                    }
+                }
+            }
+
             $booking->google_event_id = $googleEvent->getId();
             $booking->calendar_id = $calendar->id;
             $booking->meeting_link = $meetLink;
             $booking->save();
 
-            // TODO: Implement email notifications
+            try {
+                $googleCalendarService->syncEvents($calendar);
+
+                if (!empty($bookingPage->selected_calendars)) {
+                    foreach ($bookingPage->selected_calendars as $calendarId) {
+                        if ($calendarId != $calendar->id) {
+                            $otherCalendar = Calendar::find($calendarId);
+                            if ($otherCalendar && $otherCalendar->googleAccount->is_active) {
+                                $otherService = new GoogleCalendarService($otherCalendar->googleAccount);
+                                $otherService->syncEvents($otherCalendar);
+                            }
+                        }
+                    }
+                }
+
+                Log::info('Calendars synced after booking creation', [
+                    'booking_id' => $booking->id,
+                    'primary_calendar_id' => $calendar->id
+                ]);
+            } catch (\Exception $e) {
+                Log::warning('Failed to sync calendars after booking, but booking was created', [
+                    'message' => $e->getMessage(),
+                    'booking_id' => $booking->id
+                ]);
+            }
+
+            try {
+                Mail::to($booking->email)
+                    ->send(new BookingConfirmation($booking, false));
+
+                Mail::to($bookingPage->user->email)
+                    ->send(new BookingConfirmation($booking, true));
+
+                Log::info('Booking notifications sent', [
+                    'booking_id' => $booking->id,
+                    'attendee' => $booking->email,
+                    'organizer' => $bookingPage->user->email
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Failed to send booking notifications: ' . $e->getMessage(), [
+                    'booking_id' => $booking->id
+                ]);
+            }
 
         } catch (\Exception $e) {
             Log::error('Failed to create calendar event: ' . $e->getMessage(), [
                 'booking_id' => $booking->id,
                 'calendar_id' => $calendar->id,
+            ]);
+
+            return response()->json([
+                'error' => 'Failed to create calendar event. Please try again later.'
+            ], 500);
+        }
+
+        Log::info('Booking created successfully', [
+            'booking_id' => $booking->id,
+            'is_ajax' => $request->ajax(),
+            'wants_json' => $request->wantsJson(),
+            'accept' => $request->header('Accept'),
+        ]);
+
+        if ($request->ajax() || $request->wantsJson() || $request->expectsJson()) {
+            return response()->json([
+                'booking' => [
+                    'name' => $booking->name,
+                    'starts_at' => $booking->starts_at->format('l, F j, Y g:i A'),
+                    'ends_at' => $booking->ends_at->format('g:i A'),
+                    'meeting_link' => $booking->meeting_link,
+                    'with' => $bookingPage->user->name,
+                    'uid' => $booking->uid,
+                ],
             ]);
         }
 
@@ -299,13 +381,31 @@ class BookingController extends Controller
         ]);
     }
 
+    public function cancelBookingPage($uid)
+    {
+        $booking = Booking::with('bookingPage.user')
+            ->where('uid', $uid)
+            ->where('status', 'confirmed')
+            ->firstOrFail();
+
+        return Inertia::render('Booking/Cancel', [
+            'booking' => [
+                'id' => $booking->id,
+                'uid' => $booking->uid,
+                'name' => $booking->name,
+                'starts_at' => $booking->starts_at->format('l, F j, Y g:i A'),
+                'ends_at' => $booking->ends_at->format('g:i A'),
+                'with' => $booking->bookingPage->user->name,
+                'status' => $booking->status
+            ],
+        ]);
+    }
+
     public function cancelBooking(Request $request, $uid)
     {
-        $booking = Booking::where('uid', $uid)->firstOrFail();
-
-        if ($booking->status === 'cancelled') {
-            return redirect()->back()->with('info', 'This booking is already cancelled.');
-        }
+        $booking = Booking::where('uid', $uid)
+            ->where('status', 'confirmed')
+            ->firstOrFail();
 
         $booking->status = 'cancelled';
         $booking->save();
@@ -315,6 +415,11 @@ class BookingController extends Controller
                 $calendar = Calendar::findOrFail($booking->calendar_id);
                 $googleCalendarService = new GoogleCalendarService($calendar->googleAccount);
                 $googleCalendarService->deleteEvent($calendar->google_id, $booking->google_event_id);
+
+                Log::info('Google Calendar event deleted', [
+                    'booking_id' => $booking->id,
+                    'google_event_id' => $booking->google_event_id,
+                ]);
             } catch (\Exception $e) {
                 Log::error('Failed to delete calendar event: ' . $e->getMessage(), [
                     'booking_id' => $booking->id,
@@ -323,9 +428,39 @@ class BookingController extends Controller
             }
         }
 
-        // TODO: Send cancellation emails
+        try {
+            Mail::to($booking->email)
+                ->send(new BookingCancellation($booking, false));
 
-        return redirect()->back()->with('success', 'Your booking has been cancelled.');
+            Mail::to($booking->bookingPage->user->email)
+                ->send(new BookingCancellation($booking, true));
+
+            Log::info('Booking cancellation notifications sent', [
+                'booking_id' => $booking->id,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to send cancellation notifications: ' . $e->getMessage(), [
+                'booking_id' => $booking->id
+            ]);
+        }
+
+        if ($request->ajax() || $request->wantsJson() || $request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Your booking has been cancelled successfully.'
+            ]);
+        }
+
+        return Inertia::render('Booking/CancelConfirmation', [
+            'booking' => [
+                'name' => $booking->name,
+                'starts_at' => $booking->starts_at->format('l, F j, Y g:i A'),
+                'with' => $booking->bookingPage->user->name,
+                'bookingPage' => [
+                    'slug' => $booking->bookingPage->slug
+                ]
+            ],
+        ]);
     }
 
     public function listBookings()

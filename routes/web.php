@@ -71,3 +71,6 @@ Route::get('/book/{slug}', [BookingController::class, 'show'])->name('booking.sh
 Route::get('/book/{slug}/slots', [BookingController::class, 'getAvailableSlots'])->name('booking.slots');
 Route::post('/book/{slug}', [BookingController::class, 'createBooking'])->name('booking.create');
 Route::post('/book/cancel/{uid}', [BookingController::class, 'cancelBooking'])->name('booking.cancel');
+
+Route::get('/book/cancel/{uid}', [BookingController::class, 'cancelBookingPage'])->name('booking.cancel.page');
+Route::post('/book/cancel/{uid}', [BookingController::class, 'cancelBooking'])->name('booking.cancel');
