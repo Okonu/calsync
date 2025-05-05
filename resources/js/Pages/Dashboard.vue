@@ -71,7 +71,7 @@ const accountsWithCalendarCount = computed(() => {
                 <!-- Welcome Section -->
                 <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg mb-6">
                     <div class="p-6">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Welcome to CalSync</h3>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Welcome to Synqs</h3>
                         <p class="text-gray-600">
                             Your central hub for managing all your Google calendars in one place.
                         </p>

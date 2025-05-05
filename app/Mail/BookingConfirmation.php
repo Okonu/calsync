@@ -29,7 +29,7 @@ class BookingConfirmation extends Mailable implements ShouldQueue
             : "Meeting confirmed with {$this->booking->bookingPage->user->name}";
 
         return $this->subject($subject)
-            ->markdown('emails.booking.confirmation', [
+            ->view('emails.booking.confirmation', [
                 'booking' => $this->booking,
                 'isOrganizer' => $this->isOrganizer,
                 'cancellationLink' => $cancellationLink,

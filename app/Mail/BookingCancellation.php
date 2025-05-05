@@ -28,7 +28,7 @@ class BookingCancellation extends Mailable implements ShouldQueue
             : "Meeting with {$this->booking->bookingPage->user->name} cancelled";
 
         return $this->subject($subject)
-            ->markdown('emails.booking.cancellation', [
+            ->view('emails.booking.cancellation', [
                 'booking' => $this->booking,
                 'isOrganizer' => $this->isOrganizer,
             ]);
