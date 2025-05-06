@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
@@ -9,6 +9,8 @@ const props = defineProps({
     calendars: Array,
     bookingUrl: String,
 });
+
+const allCalendarIds = props.calendars ? props.calendars.map(cal => cal.id) : [];
 
 const form = useForm({
     title: props.bookingPage?.title || 'My Booking Page',
@@ -22,7 +24,13 @@ const form = useForm({
     buffer_before: props.bookingPage?.buffer_before || 0,
     buffer_after: props.bookingPage?.buffer_after || 0,
     include_meet: props.bookingPage?.include_meet ?? true,
-    selected_calendars: props.bookingPage?.selected_calendars || [],
+    selected_calendars: props.bookingPage?.selected_calendars || allCalendarIds,
+});
+
+onMounted(() => {
+    if (!props.bookingPage || !props.bookingPage.id || !props.bookingPage.selected_calendars || props.bookingPage.selected_calendars.length === 0) {
+        form.selected_calendars = allCalendarIds;
+    }
 });
 
 const dayLabels = [
@@ -44,7 +52,6 @@ const durationOptions = [
     { value: 120, label: '2 hours' },
 ];
 
-// Generate time options in local time
 const timeOptions = [];
 for (let hour = 0; hour < 24; hour++) {
     for (let minute = 0; minute < 60; minute += 30) {
@@ -52,55 +59,43 @@ for (let hour = 0; hour < 24; hour++) {
         const m = minute.toString().padStart(2, '0');
         const timeValue = `${h}:${m}`;
         timeOptions.push({
-            value: timeValue, // Store in 24h format for the server
-            label: formatTimeForDisplay(timeValue) // Display in 12h format for the user
+            value: timeValue,
+            label: formatTimeForDisplay(timeValue)
         });
     }
 }
 
-// Format time for display in user's local timezone
 function formatTimeForDisplay(timeString) {
-    // Create a date object using today's date and the time string
     const today = new Date();
     const [hours, minutes] = timeString.split(':');
 
-    // Set the time components
     today.setHours(parseInt(hours, 10));
     today.setMinutes(parseInt(minutes, 10));
 
-    // Format time in 12-hour format with AM/PM
     return today.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
-// Convert UTC time to local time for display
 function utcToLocal(timeString) {
     if (!timeString) return '';
 
-    // Create a date using the current date and the UTC time
     const date = new Date();
     const [hours, minutes] = timeString.split(':');
 
-    // Set UTC time
     date.setUTCHours(parseInt(hours, 10));
     date.setUTCMinutes(parseInt(minutes, 10));
 
-    // Format time in 24-hour format for form value
     return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
 }
 
-// Convert local time to UTC for sending to server
 function localToUtc(timeString) {
     if (!timeString) return '';
 
-    // Create a date using the current date and the local time
     const date = new Date();
     const [hours, minutes] = timeString.split(':');
 
-    // Set local time
     date.setHours(parseInt(hours, 10));
     date.setMinutes(parseInt(minutes, 10));
 
-    // Format time in 24-hour UTC format
     return `${date.getUTCHours().toString().padStart(2, '0')}:${date.getUTCMinutes().toString().padStart(2, '0')}`;
 }
 
@@ -329,18 +324,18 @@ if (props.bookingPage) {
                         <div class="mt-8 space-y-4">
                             <div class="flex justify-between items-center">
                                 <h2 class="text-lg font-medium">Check Availability Against These Calendars</h2>
-                                <div class="flex space-x-2">
+                                <div class="flex space-x-3">
                                     <button
                                         type="button"
                                         @click="selectAllCalendars"
-                                        class="text-xs text-indigo-600 hover:text-indigo-800"
+                                        class="px-3 py-1 text-sm font-medium bg-indigo-100 text-indigo-800 border border-indigo-300 rounded-md hover:bg-indigo-200 transition-colors"
                                     >
                                         Select All
                                     </button>
                                     <button
                                         type="button"
                                         @click="clearAllCalendars"
-                                        class="text-xs text-indigo-600 hover:text-indigo-800"
+                                        class="px-3 py-1 text-sm font-medium bg-gray-100 text-gray-800 border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"
                                     >
                                         Clear All
                                     </button>

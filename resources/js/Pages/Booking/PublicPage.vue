@@ -2,7 +2,7 @@
 import { ref, computed, watch } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import axios from 'axios';
-import { format, parseISO, addDays, startOfWeek, isValid } from 'date-fns';
+import { format, parseISO, addDays, startOfWeek, isValid, isBefore, isToday } from 'date-fns';
 
 const props = defineProps({
     bookingPage: Object,
@@ -28,17 +28,28 @@ const isSubmitting = ref(false);
 const bookingConfirmed = ref(false);
 const bookingData = ref(null);
 
+const now = ref(new Date());
+
+setInterval(() => {
+    now.value = new Date();
+}, 60000);
+
 function generateCalendarDays() {
     const startDate = startOfWeek(new Date());
     const days = [];
 
     for (let i = 0; i < 42; i++) {
         const date = addDays(startDate, i);
+        const dateStr = format(date, 'yyyy-MM-dd');
+        const isCurrentDay = format(date, 'yyyy-MM-dd') === format(now.value, 'yyyy-MM-dd');
+        const isPastDay = isBefore(date, now.value) && !isCurrentDay;
+
         days.push({
-            date: format(date, 'yyyy-MM-dd'),
+            date: dateStr,
             day: format(date, 'd'),
             weekday: format(date, 'E'),
-            isToday: format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd'),
+            isToday: isCurrentDay,
+            isPast: isPastDay,
         });
     }
 
@@ -56,9 +67,18 @@ async function fetchTimeSlots(date) {
             params: { date }
         });
 
-        availableSlots.value = response.data.slots || [];
+        const slots = response.data.slots || [];
+        const currentTime = now.value;
+        const isSelectedDateToday = format(parseISO(date), 'yyyy-MM-dd') === format(currentTime, 'yyyy-MM-dd');
 
-        // console.log('API response for slots:', response.data);
+        if (isSelectedDateToday) {
+            availableSlots.value = slots.filter(slot => {
+                const slotTime = new Date(`${date}T${slot.start}:00`);
+                return slotTime > currentTime;
+            });
+        } else {
+            availableSlots.value = slots;
+        }
     } catch (error) {
         console.error('Error fetching time slots:', error);
         availableSlots.value = [];
@@ -68,6 +88,13 @@ async function fetchTimeSlots(date) {
 }
 
 function selectDate(date) {
+    const selectedDateObj = new Date(date);
+    const today = new Date(format(now.value, 'yyyy-MM-dd'));
+
+    if (isBefore(selectedDateObj, today)) {
+        return;
+    }
+
     selectedDate.value = date;
     fetchTimeSlots(date);
 }
@@ -148,6 +175,10 @@ function formatTimeDisplay(timeString) {
 
     return `${displayHour}:${minutes} ${suffix}`;
 }
+
+watch(now, () => {
+    generateCalendarDays();
+});
 
 generateCalendarDays();
 
@@ -230,9 +261,11 @@ watch(selectedDate, (newDate) => {
                                         class="py-2 rounded-md text-sm"
                                         :class="[
                                             day.isToday ? 'font-bold' : '',
-                                            selectedDate === day.date ? 'bg-indigo-100 text-indigo-800' : 'hover:bg-gray-100'
+                                            day.isPast ? 'text-gray-300 cursor-not-allowed' : 'hover:bg-gray-100',
+                                            selectedDate === day.date ? 'bg-indigo-100 text-indigo-800' : ''
                                         ]"
                                         @click="selectDate(day.date)"
+                                        :disabled="day.isPast"
                                     >
                                         {{ day.day }}
                                     </button>
