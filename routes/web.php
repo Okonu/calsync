@@ -30,6 +30,10 @@ Route::middleware('guest')->group(function () {
     Route::get('auth/google/callback', [GoogleAuthController::class, 'callback'])->name('google.callback');
 });
 
+Route::get('/help', function () {
+    return Inertia::render('HelpCenter');
+})->name('help');
+
 Route::get('/privacy-policy', function () {
     return view('pages.privacy-policy');
 })->name('privacy-policy');

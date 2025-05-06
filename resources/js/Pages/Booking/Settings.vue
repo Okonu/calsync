@@ -2,6 +2,12 @@
 import { ref, reactive, onMounted } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import PageHeader from './Components/PageHeader.vue';
+import SettingsCard from './Components/SettingsCard.vue';
+import BookingLinkCard from './Components/BookingLinkCard.vue';
+import AvailabilityCard from './Components/AvailabilityCard.vue';
+import CalendarIntegrationCard from './Components/CalendarIntegrationCard.vue';
+import NotificationToast from './Components/NotificationToast.vue';
 
 const props = defineProps({
     bookingPage: Object,
@@ -9,6 +15,17 @@ const props = defineProps({
     calendars: Array,
     bookingUrl: String,
 });
+
+const activeTab = ref('details');
+
+const showSuccessNotification = ref(false);
+const notificationMessage = ref('');
+
+const tabDescriptions = {
+    details: "Configure basic page information and meeting settings",
+    availability: "Set which days and times you're available for meetings",
+    calendars: "Choose which calendars to check for conflicts and where to add bookings"
+};
 
 const allCalendarIds = props.calendars ? props.calendars.map(cal => cal.id) : [];
 
@@ -60,7 +77,7 @@ for (let hour = 0; hour < 24; hour++) {
         const timeValue = `${h}:${m}`;
         timeOptions.push({
             value: timeValue,
-            label: formatTimeForDisplay(timeValue)
+            label: formatTimeForDisplay(timeValue)r
         });
     }
 }
@@ -123,9 +140,20 @@ function clearAllCalendars() {
 function copyBookingUrl() {
     if (props.bookingUrl && typeof navigator !== 'undefined') {
         navigator.clipboard.writeText(props.bookingUrl)
-            .then(() => alert('Booking URL copied to clipboard!'))
+            .then(() => {
+                showNotification('Booking link copied to clipboard!');
+            })
             .catch(err => console.error('Could not copy URL: ', err));
     }
+}
+
+function showNotification(message) {
+    notificationMessage.value = message;
+    showSuccessNotification.value = true;
+
+    setTimeout(() => {
+        showSuccessNotification.value = false;
+    }, 3000);
 }
 
 function submit() {
@@ -133,7 +161,11 @@ function submit() {
     formData.start_time = localToUtc(form.start_time);
     formData.end_time = localToUtc(form.end_time);
 
-    formData.post(route('booking.update-settings'));
+    formData.post(route('booking.update-settings'), {
+        onSuccess: () => {
+            showNotification('Settings saved successfully!');
+        }
+    });
 }
 
 if (props.bookingPage) {
@@ -146,292 +178,263 @@ if (props.bookingPage) {
     <AppLayout title="Booking Settings">
         <Head title="Booking Settings" />
 
-        <div class="py-12">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
-                    <h1 class="text-2xl font-semibold mb-6">Booking Page Settings</h1>
+        <div class="py-4 bg-gray-50 min-h-screen">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <PageHeader
+                    title="Booking Settings"
+                    subtitle="Configure your booking page and availability"
+                    :is-processing="form.processing"
+                    @save="submit"
+                />
 
-                    <div v-if="bookingUrl" class="mb-8 p-4 bg-gray-50 rounded-lg">
-                        <h2 class="text-lg font-medium mb-2">Your Booking Link</h2>
-                        <div class="flex items-center">
-                            <input
-                                type="text"
-                                :value="bookingUrl"
-                                readonly
-                                class="flex-1 p-2 border border-gray-300 rounded-md shadow-sm mr-2"
-                            />
-                            <button @click="copyBookingUrl" class="bg-indigo-600 text-white px-4 py-2 rounded-md">
-                                Copy Link
-                            </button>
+                <!-- Main Content -->
+                <div class="mt-4 grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <!-- Left Column -->
+                    <div class="lg:col-span-1 space-y-6">
+                        <!-- Booking Link Card -->
+                        <BookingLinkCard
+                            v-if="bookingUrl"
+                            :booking-url="bookingUrl"
+                            @copy="copyBookingUrl"
+                        />
+
+                        <!-- Tabs Navigation Card -->
+                        <div class="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
+                            <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                                <h3 class="text-lg font-medium text-gray-900">Navigation</h3>
+                            </div>
+
+                            <div class="p-1">
+                                <nav class="space-y-1" aria-label="Settings Navigation">
+                                    <button
+                                        @click="activeTab = 'details'"
+                                        class="w-full text-left px-3 py-3 rounded-md transition-colors"
+                                        :class="activeTab === 'details' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'"
+                                    >
+                                        <div class="flex items-center">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" />
+                                            </svg>
+                                            <div>
+                                                <span class="block font-medium">Page Details</span>
+                                                <span class="block text-xs text-gray-500 mt-0.5">{{ tabDescriptions.details }}</span>
+                                            </div>
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        @click="activeTab = 'availability'"
+                                        class="w-full text-left px-3 py-3 rounded-md transition-colors"
+                                        :class="activeTab === 'availability' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'"
+                                    >
+                                        <div class="flex items-center">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                                            </svg>
+                                            <div>
+                                                <span class="block font-medium">Availability</span>
+                                                <span class="block text-xs text-gray-500 mt-0.5">{{ tabDescriptions.availability }}</span>
+                                            </div>
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        @click="activeTab = 'calendars'"
+                                        class="w-full text-left px-3 py-3 rounded-md transition-colors relative"
+                                        :class="activeTab === 'calendars' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'"
+                                    >
+                                        <div class="flex items-center">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M5 4a3 3 0 00-3 3v6a3 3 0 003 3h10a3 3 0 003-3V7a3 3 0 00-3-3H5zm-1 9v-1h5v2H5a1 1 0 01-1-1zm7 1h4a1 1 0 001-1v-1h-5v2zm0-4h5V8h-5v2zM9 8H4v2h5V8z" clip-rule="evenodd" />
+                                            </svg>
+                                            <div>
+                                                <span class="block font-medium">Calendars</span>
+                                                <span class="block text-xs text-gray-500 mt-0.5">{{ tabDescriptions.calendars }}</span>
+                                            </div>
+                                        </div>
+
+                                        <span
+                                            v-if="form.selected_calendars.length > 0"
+                                            class="absolute right-3 top-3 bg-indigo-100 text-indigo-800 py-0.5 px-2 rounded-full text-xs"
+                                        >
+                                            {{ form.selected_calendars.length }}
+                                        </span>
+                                    </button>
+                                </nav>
+                            </div>
                         </div>
                     </div>
 
-                    <form @submit.prevent="submit">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <!-- Basic Information -->
-                            <div class="space-y-4">
-                                <h2 class="text-lg font-medium">Page Details</h2>
+                    <!-- Right Column -->
+                    <div class="lg:col-span-3">
+                        <form @submit.prevent="submit">
+                            <!-- Page Details Tab -->
+                            <div v-show="activeTab === 'details'">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <!-- Page Details Card -->
+                                    <SettingsCard title="Page Details" icon="document">
+                                        <div class="space-y-4">
+                                            <div>
+                                                <label for="title" class="block text-sm font-medium text-gray-700">Page Title</label>
+                                                <input
+                                                    id="title"
+                                                    v-model="form.title"
+                                                    type="text"
+                                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                    placeholder="e.g. Coffee Chat with Jane"
+                                                />
+                                                <div v-if="form.errors.title" class="text-red-500 text-sm mt-1">{{ form.errors.title }}</div>
+                                            </div>
 
-                                <div>
-                                    <label for="title" class="block text-sm font-medium text-gray-700">Page Title</label>
-                                    <input
-                                        id="title"
-                                        v-model="form.title"
-                                        type="text"
-                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                    />
-                                    <div v-if="form.errors.title" class="text-red-500 text-sm mt-1">{{ form.errors.title }}</div>
-                                </div>
+                                            <div>
+                                                <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
+                                                <textarea
+                                                    id="description"
+                                                    v-model="form.description"
+                                                    rows="3"
+                                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                    placeholder="Briefly describe what this meeting is about"
+                                                ></textarea>
+                                            </div>
 
-                                <div>
-                                    <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
-                                    <textarea
-                                        id="description"
-                                        v-model="form.description"
-                                        rows="3"
-                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                    ></textarea>
-                                </div>
-
-                                <div>
-                                    <label for="slug" class="block text-sm font-medium text-gray-700">Page URL</label>
-                                    <div class="mt-1 flex rounded-md shadow-sm">
-                                        <span class="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 bg-gray-50 px-3 text-sm text-gray-500">
-                                            {{ getBaseUrl() }}/book/
-                                        </span>
-                                        <input
-                                            id="slug"
-                                            v-model="form.slug"
-                                            type="text"
-                                            class="block w-full flex-1 rounded-none rounded-r-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                        />
-                                    </div>
-                                    <div v-if="form.errors.slug" class="text-red-500 text-sm mt-1">{{ form.errors.slug }}</div>
-                                </div>
-                            </div>
-
-                            <!-- Meeting Settings -->
-                            <div class="space-y-4">
-                                <h2 class="text-lg font-medium">Meeting Settings</h2>
-
-                                <div>
-                                    <label for="duration" class="block text-sm font-medium text-gray-700">Meeting Duration</label>
-                                    <select
-                                        id="duration"
-                                        v-model="form.duration"
-                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                    >
-                                        <option v-for="option in durationOptions" :key="option.value" :value="option.value">
-                                            {{ option.label }}
-                                        </option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label class="flex items-center">
-                                        <input
-                                            type="checkbox"
-                                            v-model="form.include_meet"
-                                            class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                        />
-                                        <span class="ml-2 text-sm text-gray-700">Add Google Meet video conferencing</span>
-                                    </label>
-                                </div>
-
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label for="buffer_before" class="block text-sm font-medium text-gray-700">Buffer Before (min)</label>
-                                        <input
-                                            id="buffer_before"
-                                            v-model="form.buffer_before"
-                                            type="number"
-                                            min="0"
-                                            max="60"
-                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label for="buffer_after" class="block text-sm font-medium text-gray-700">Buffer After (min)</label>
-                                        <input
-                                            id="buffer_after"
-                                            v-model="form.buffer_after"
-                                            type="number"
-                                            min="0"
-                                            max="60"
-                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Availability Settings -->
-                        <div class="mt-8 space-y-4">
-                            <h2 class="text-lg font-medium">Availability Settings</h2>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Available Days</label>
-                                <div class="mt-2 flex flex-wrap gap-2">
-                                    <button
-                                        v-for="day in dayLabels"
-                                        :key="day.value"
-                                        type="button"
-                                        :class="[
-                                            'px-3 py-2 rounded-md text-sm font-medium',
-                                            form.available_days.includes(day.value)
-                                                ? 'bg-indigo-100 text-indigo-800 border-indigo-300'
-                                                : 'bg-gray-100 text-gray-800 border-gray-300'
-                                        ]"
-                                        @click="toggleDay(day.value)"
-                                    >
-                                        {{ day.label }}
-                                    </button>
-                                </div>
-                                <div v-if="form.errors.available_days" class="text-red-500 text-sm mt-1">{{ form.errors.available_days }}</div>
-                            </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label for="start_time" class="block text-sm font-medium text-gray-700">Start Time (Your Local Time)</label>
-                                    <select
-                                        id="start_time"
-                                        v-model="form.start_time"
-                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                    >
-                                        <option v-for="option in timeOptions" :key="option.value" :value="option.value">
-                                            {{ option.label }}
-                                        </option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label for="end_time" class="block text-sm font-medium text-gray-700">End Time (Your Local Time)</label>
-                                    <select
-                                        id="end_time"
-                                        v-model="form.end_time"
-                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                    >
-                                        <option v-for="option in timeOptions" :key="option.value" :value="option.value">
-                                            {{ option.label }}
-                                        </option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Calendar Selection -->
-                        <div class="mt-8 space-y-4">
-                            <div class="flex justify-between items-center">
-                                <h2 class="text-lg font-medium">Check Availability Against These Calendars</h2>
-                                <div class="flex space-x-3">
-                                    <button
-                                        type="button"
-                                        @click="selectAllCalendars"
-                                        class="px-3 py-1 text-sm font-medium bg-indigo-100 text-indigo-800 border border-indigo-300 rounded-md hover:bg-indigo-200 transition-colors"
-                                    >
-                                        Select All
-                                    </button>
-                                    <button
-                                        type="button"
-                                        @click="clearAllCalendars"
-                                        class="px-3 py-1 text-sm font-medium bg-gray-100 text-gray-800 border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"
-                                    >
-                                        Clear All
-                                    </button>
-                                </div>
-                            </div>
-
-                            <p class="text-sm text-gray-600">
-                                Select which calendars to check for availability. Bookings will only be offered when you're available across all selected calendars.
-                            </p>
-
-                            <div class="max-h-60 overflow-y-auto border rounded-md p-4">
-                                <div v-if="accounts.length === 0" class="text-gray-500">
-                                    No Google accounts connected yet.
-                                </div>
-
-                                <div v-else>
-                                    <div v-for="account in accounts" :key="account.id" class="mb-4">
-                                        <div class="flex items-center mb-2">
-                                            <div
-                                                class="w-4 h-4 rounded-full mr-2"
-                                                :style="{ backgroundColor: account.color }"
-                                            ></div>
-                                            <span class="font-medium">{{ account.name }} ({{ account.email }})</span>
-                                            <span v-if="account.is_primary" class="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
-                                                Primary
-                                            </span>
-                                        </div>
-
-                                        <div class="ml-6 space-y-2">
-                                            <div v-for="calendar in calendars.filter(c => c.google_account_id === account.id)" :key="calendar.id">
-                                                <label class="flex items-center">
+                                            <div>
+                                                <label for="slug" class="block text-sm font-medium text-gray-700">Page URL</label>
+                                                <div class="mt-1 flex rounded-lg shadow-sm">
+                                                    <span class="inline-flex items-center rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 px-3 text-sm text-gray-500">
+                                                        {{ getBaseUrl() }}/book/
+                                                    </span>
                                                     <input
-                                                        type="checkbox"
-                                                        :value="calendar.id"
-                                                        v-model="form.selected_calendars"
-                                                        class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                        id="slug"
+                                                        v-model="form.slug"
+                                                        type="text"
+                                                        class="block w-full flex-1 rounded-none rounded-r-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                                        placeholder="your-meeting-name"
                                                     />
-                                                    <span
-                                                        class="w-3 h-3 rounded-full mx-2"
-                                                        :style="{ backgroundColor: calendar.color }"
-                                                    ></span>
-                                                    <span class="text-sm">{{ calendar.name }}</span>
-                                                    <span v-if="calendar.is_primary" class="ml-2 text-xs text-gray-500">(Primary)</span>
-                                                </label>
+                                                </div>
+                                                <div v-if="form.errors.slug" class="text-red-500 text-sm mt-1">{{ form.errors.slug }}</div>
                                             </div>
                                         </div>
-                                    </div>
+                                    </SettingsCard>
+
+                                    <!-- Meeting Settings Card -->
+                                    <SettingsCard title="Meeting Settings" icon="clock">
+                                        <div class="space-y-4">
+                                            <div>
+                                                <label for="duration" class="block text-sm font-medium text-gray-700">Meeting Duration</label>
+                                                <select
+                                                    id="duration"
+                                                    v-model="form.duration"
+                                                    class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                >
+                                                    <option v-for="option in durationOptions" :key="option.value" :value="option.value">
+                                                        {{ option.label }}
+                                                    </option>
+                                                </select>
+                                            </div>
+
+                                            <div class="flex items-center p-3 bg-indigo-50 rounded-lg">
+                                                <input
+                                                    id="include_meet"
+                                                    type="checkbox"
+                                                    v-model="form.include_meet"
+                                                    class="h-5 w-5 rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                />
+                                                <label for="include_meet" class="ml-3 text-sm font-medium text-gray-700">
+                                                    Add Google Meet video conferencing
+                                                </label>
+                                            </div>
+
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label for="buffer_before" class="block text-sm font-medium text-gray-700">Buffer Before</label>
+                                                    <div class="mt-1 relative rounded-md shadow-sm">
+                                                        <input
+                                                            id="buffer_before"
+                                                            v-model="form.buffer_before"
+                                                            type="number"
+                                                            min="0"
+                                                            max="60"
+                                                            class="block w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                                                        />
+                                                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                                            <span class="text-gray-500 sm:text-sm">min</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label for="buffer_after" class="block text-sm font-medium text-gray-700">Buffer After</label>
+                                                    <div class="mt-1 relative rounded-md shadow-sm">
+                                                        <input
+                                                            id="buffer_after"
+                                                            v-model="form.buffer_after"
+                                                            type="number"
+                                                            min="0"
+                                                            max="60"
+                                                            class="block w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                                                        />
+                                                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                                            <span class="text-gray-500 sm:text-sm">min</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </SettingsCard>
                                 </div>
                             </div>
-                            <div v-if="form.errors.selected_calendars" class="text-red-500 text-sm mt-1">{{ form.errors.selected_calendars }}</div>
-                        </div>
 
-                        <!-- Destination Calendar Selection -->
-                        <div class="mt-6 space-y-4">
-                            <h3 class="text-md font-medium">Destination Calendar (Optional)</h3>
-                            <p class="text-sm text-gray-600">
-                                Choose a calendar where new appointments will be added. If not specified, your primary account's default calendar will be used.
-                            </p>
-
-                            <div>
-                                <select
-                                    id="destination_calendar_id"
-                                    v-model="form.destination_calendar_id"
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                >
-                                    <option value="">Use primary account's default calendar</option>
-                                    <optgroup
-                                        v-for="account in accounts"
-                                        :key="account.id"
-                                        :label="account.name + ' (' + account.email + ')'"
-                                    >
-                                        <option
-                                            v-for="calendar in calendars.filter(c => c.google_account_id === account.id)"
-                                            :key="calendar.id"
-                                            :value="calendar.id"
-                                        >
-                                            {{ calendar.name }}{{ calendar.is_primary ? ' (Primary)' : '' }}
-                                        </option>
-                                    </optgroup>
-                                </select>
+                            <!-- Availability Tab -->
+                            <div v-show="activeTab === 'availability'">
+                                <AvailabilityCard
+                                    title="Availability Settings"
+                                    :days="dayLabels"
+                                    :selected-days="form.available_days"
+                                    :time-options="timeOptions"
+                                    v-model:start-time="form.start_time"
+                                    v-model:end-time="form.end_time"
+                                    @toggle-day="toggleDay"
+                                />
                             </div>
-                        </div>
 
-                        <!-- Submit Button -->
-                        <div class="mt-8 flex justify-end">
-                            <button
-                                type="submit"
-                                :disabled="form.processing"
-                                class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 active:bg-indigo-800 focus:outline-none focus:border-indigo-900 focus:ring ring-indigo-300 disabled:opacity-25 transition ease-in-out duration-150"
-                            >
-                                <span v-if="form.processing">Saving...</span>
-                                <span v-else>Save Settings</span>
-                            </button>
-                        </div>
-                    </form>
+                            <!-- Calendars Tab -->
+                            <div v-show="activeTab === 'calendars'">
+                                <CalendarIntegrationCard
+                                    :accounts="accounts"
+                                    :calendars="calendars"
+                                    v-model:selected-calendars="form.selected_calendars"
+                                    v-model:destination-calendar-id="form.destination_calendar_id"
+                                    @select-all="selectAllCalendars"
+                                    @clear-all="clearAllCalendars"
+                                />
+                            </div>
+
+                            <div class="mt-6 lg:hidden">
+                                <button
+                                    type="submit"
+                                    :disabled="form.processing"
+                                    class="w-full flex justify-center items-center px-6 py-3 bg-indigo-600 border border-transparent rounded-lg font-medium text-white shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-colors"
+                                >
+                                    <svg class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" v-if="form.processing">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor" v-else>
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                    </svg>
+                                    <span v-if="form.processing">Saving...</span>
+                                    <span v-else>Save Settings</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
+
+                <NotificationToast
+                    :show="showSuccessNotification"
+                    :message="notificationMessage"
+                    type="success"
+                />
             </div>
         </div>
     </AppLayout>
