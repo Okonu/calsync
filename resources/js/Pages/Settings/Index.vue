@@ -20,14 +20,12 @@ async function loadData() {
     try {
         isLoading.value = true;
 
-        // Fetch accounts and calendars
         const accountsResponse = await axios.get('/api/accounts');
         googleAccounts.value = accountsResponse.data || [];
 
         const calendarsResponse = await axios.get('/api/calendars');
         calendars.value = calendarsResponse.data || [];
 
-        // Group calendars by account
         googleAccounts.value = googleAccounts.value.map(account => {
             const accountCalendars = calendars.value.filter(cal => cal.google_account_id === account.id);
             return {

@@ -77,7 +77,7 @@ for (let hour = 0; hour < 24; hour++) {
         const timeValue = `${h}:${m}`;
         timeOptions.push({
             value: timeValue,
-            label: formatTimeForDisplay(timeValue)r
+            label: formatTimeForDisplay(timeValue)
         });
     }
 }
