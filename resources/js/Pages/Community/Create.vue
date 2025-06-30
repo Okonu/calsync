@@ -60,12 +60,14 @@ const filteredCalendars = computed(() => {
     if (!form.calendar_email) return [];
 
     return calendars.value.filter(calendar =>
-        calendar.googleAccount.email === form.calendar_email
+        calendar.googleAccount?.email === form.calendar_email
     );
 });
 
 const availableEmails = computed(() => {
-    const emails = accounts.value.map(account => account.email);
+    const emails = accounts.value
+        .filter(account => account?.email) // Filter out accounts without email
+        .map(account => account.email);
     return [...new Set(emails)];
 });
 
@@ -105,13 +107,16 @@ async function loadAccounts() {
         calendars.value = calendarsResponse.data || [];
 
         // Set default calendar email to primary account
-        const primaryAccount = accounts.value.find(account => account.is_primary);
-        if (primaryAccount && !form.calendar_email) {
+        const primaryAccount = accounts.value.find(account => account?.is_primary);
+        if (primaryAccount?.email && !form.calendar_email) {
             form.calendar_email = primaryAccount.email;
             showCalendarOptions.value = true;
         }
     } catch (error) {
         console.error('Error loading accounts:', error);
+        // Set fallback empty arrays to prevent further errors
+        accounts.value = [];
+        calendars.value = [];
     } finally {
         isLoadingCalendars.value = false;
     }
@@ -122,10 +127,12 @@ function handleCalendarEmailChange() {
     showCalendarOptions.value = !!form.calendar_email;
 
     // Check if this email exists in current accounts
-    const accountExists = accounts.value.some(account => account.email === form.calendar_email);
+    const accountExists = accounts.value.some(account => account?.email === form.calendar_email);
     if (!accountExists && form.calendar_email) {
         // Show connect account option
         showConnectAccountOption.value = true;
+    } else {
+        showConnectAccountOption.value = false;
     }
 }
 
@@ -139,7 +146,7 @@ function connectNewAccount() {
     // Redirect to Google auth with a special parameter indicating this is for community calendar
     const params = new URLSearchParams({
         community_calendar: 'true',
-        target_email: form.calendar_email
+        target_email: form.calendar_email || ''
     });
 
     window.location.href = `/connect/google?${params.toString()}`;
@@ -330,7 +337,7 @@ function submit() {
                                                 <option value="">Select calendar email...</option>
                                                 <option v-for="email in availableEmails" :key="email" :value="email">
                                                     {{ email }}
-                                                    {{ accounts.find(acc => acc.email === email)?.is_primary ? '(Primary)' : '' }}
+                                                    {{ accounts.find(acc => acc?.email === email)?.is_primary ? '(Primary)' : '' }}
                                                 </option>
                                             </select>
                                         </div>
