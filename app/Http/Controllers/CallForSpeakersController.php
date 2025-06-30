@@ -94,9 +94,12 @@ class CallForSpeakersController extends Controller
             'rejected_applications' => $cfs->applications()->where('status', 'rejected')->count(),
         ];
 
+        $cfsData = $cfs->toArray();
+        $cfsData['available_actions'] = $this->getAvailableActions($cfs);
+
         return Inertia::render('CallForSpeakers/Show', [
             'community' => $community,
-            'cfs' => $cfs,
+            'cfs' => $cfsData,
             'stats' => $stats,
         ]);
     }
@@ -116,6 +119,147 @@ class CallForSpeakersController extends Controller
                 'both' => 'Allow both options',
             ],
         ]);
+    }
+
+    public function updateStatus(Request $request, Community $community, CallForSpeakers $cfs)
+    {
+        if (!auth()->user()->canManageCommunity($community)) {
+            abort(403);
+        }
+
+        $request->validate([
+            'status' => 'required|in:draft,open,closed,archived'
+        ]);
+
+        $newStatus = $request->status;
+        $currentStatus = $cfs->status;
+
+        $allowedTransitions = [
+            'draft' => ['open', 'archived'],
+            'open' => ['closed', 'archived'],
+            'closed' => ['open', 'archived', 'draft'],
+            'archived' => ['draft']
+        ];
+
+        if (!in_array($newStatus, $allowedTransitions[$currentStatus])) {
+            return back()->withErrors([
+                'status' => "Cannot transition from {$currentStatus} to {$newStatus}"
+            ]);
+        }
+
+        if ($newStatus === 'open') {
+            if (empty($cfs->title) || empty($cfs->description)) {
+                return back()->withErrors([
+                    'status' => 'CFS must have title and description before opening'
+                ]);
+            }
+
+            if (!$cfs->opens_at) {
+                $cfs->opens_at = now();
+            }
+        }
+
+        $cfs->update(['status' => $newStatus]);
+
+        $message = $this->getStatusChangeMessage($currentStatus, $newStatus);
+
+        return back()->with('success', $message);
+    }
+
+    private function getStatusChangeMessage($from, $to)
+    {
+        $messages = [
+            'draft_to_open' => 'Call for Speakers has been published and is now accepting applications',
+            'open_to_closed' => 'Call for Speakers has been closed. No new applications will be accepted',
+            'closed_to_open' => 'Call for Speakers has been reopened for applications',
+            'closed_to_draft' => 'Call for Speakers has been moved back to draft status',
+            'any_to_archived' => 'Call for Speakers has been archived'
+        ];
+
+        $key = $to === 'archived' ? 'any_to_archived' : "{$from}_to_{$to}";
+
+        return $messages[$key] ?? "Status updated from {$from} to {$to}";
+    }
+
+    private function getAvailableActions($cfs)
+    {
+        $actions = [];
+        $status = $cfs->status;
+
+        switch ($status) {
+            case 'draft':
+                $actions[] = [
+                    'key' => 'publish',
+                    'label' => 'Publish',
+                    'status' => 'open',
+                    'class' => 'bg-green-600 hover:bg-green-700 text-white',
+                    'icon' => 'publish',
+                    'confirm' => 'Are you sure you want to publish this CFS? It will become public and start accepting applications.'
+                ];
+                $actions[] = [
+                    'key' => 'archive',
+                    'label' => 'Archive',
+                    'status' => 'archived',
+                    'class' => 'bg-gray-600 hover:bg-gray-700 text-white',
+                    'icon' => 'archive'
+                ];
+                break;
+
+            case 'open':
+                $actions[] = [
+                    'key' => 'close',
+                    'label' => 'Close',
+                    'status' => 'closed',
+                    'class' => 'bg-orange-600 hover:bg-orange-700 text-white',
+                    'icon' => 'close',
+                    'confirm' => 'Are you sure you want to close this CFS? No new applications will be accepted.'
+                ];
+                $actions[] = [
+                    'key' => 'archive',
+                    'label' => 'Archive',
+                    'status' => 'archived',
+                    'class' => 'bg-gray-600 hover:bg-gray-700 text-white',
+                    'icon' => 'archive'
+                ];
+                break;
+
+            case 'closed':
+                $actions[] = [
+                    'key' => 'reopen',
+                    'label' => 'Reopen',
+                    'status' => 'open',
+                    'class' => 'bg-blue-600 hover:bg-blue-700 text-white',
+                    'icon' => 'reopen',
+                    'confirm' => 'Are you sure you want to reopen this CFS for new applications?'
+                ];
+                $actions[] = [
+                    'key' => 'unpublish',
+                    'label' => 'Back to Draft',
+                    'status' => 'draft',
+                    'class' => 'bg-yellow-600 hover:bg-yellow-700 text-white',
+                    'icon' => 'draft'
+                ];
+                $actions[] = [
+                    'key' => 'archive',
+                    'label' => 'Archive',
+                    'status' => 'archived',
+                    'class' => 'bg-gray-600 hover:bg-gray-700 text-white',
+                    'icon' => 'archive'
+                ];
+                break;
+
+            case 'archived':
+                $actions[] = [
+                    'key' => 'restore',
+                    'label' => 'Restore to Draft',
+                    'status' => 'draft',
+                    'class' => 'bg-indigo-600 hover:bg-indigo-700 text-white',
+                    'icon' => 'restore'
+                ];
+                break;
+        }
+
+        return $actions;
     }
 
     public function update(UpdateCfsRequest $request, Community $community, CallForSpeakers $cfs)
@@ -159,25 +303,6 @@ class CallForSpeakersController extends Controller
         return Inertia::render('Public/CfsListing', [
             'community' => $community,
             'cfs' => $cfs,
-        ]);
-    }
-
-    public function updateStatus(Request $request, Community $community, CallForSpeakers $cfs)
-    {
-        if (!auth()->user()->canManageCommunity($community)) {
-            abort(403);
-        }
-
-        $request->validate([
-            'status' => 'required|in:draft,open,closed,archived'
-        ]);
-
-        $cfs->update(['status' => $request->status]);
-
-        return response()->json([
-            'success' => true,
-            'message' => "Call for speakers status updated to {$request->status}.",
-            'cfs' => $cfs->fresh()
         ]);
     }
 

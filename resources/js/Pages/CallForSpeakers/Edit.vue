@@ -586,9 +586,31 @@ function submit() {
         options: q.options.filter(opt => opt.trim() !== '')
     })).filter(q => q.question.trim() !== '');
 
-    form.patch(route('communities.cfs.update', [community.slug, props.cfs.id]), {
+    form.patch(route('communities.cfs.update', [props.community.slug, props.cfs.slug]), {
         onSuccess: () => {
-            // Success handled by backend
+            // Show success notification
+            const event = new CustomEvent('show-notification', {
+                detail: {
+                    type: 'success',
+                    message: 'Call for Speakers updated successfully!'
+                }
+            });
+            window.dispatchEvent(event);
+
+            // Redirect to show page after a brief delay
+            setTimeout(() => {
+                window.location.href = route('communities.cfs.show', [props.community.slug, props.cfs.slug]);
+            }, 1000);
+        },
+        onError: (errors) => {
+            // Show error notification
+            const event = new CustomEvent('show-notification', {
+                detail: {
+                    type: 'error',
+                    message: 'There was an error updating the Call for Speakers. Please check the form and try again.'
+                }
+            });
+            window.dispatchEvent(event);
         }
     });
 }

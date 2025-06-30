@@ -157,6 +157,11 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/communities/{community}/cfs/{cfs}', [CallForSpeakersController::class, 'update'])->name('communities.cfs.update');
     Route::delete('/communities/{community}/cfs/{cfs}', [CallForSpeakersController::class, 'destroy'])->name('communities.cfs.destroy');
 
+    // CFS Status management
+//        Route::patch('/communities/{community}/cfs/{cfs}/status', [CallForSpeakersController::class, 'updateStatus']);
+    Route::patch('/communities/{community}/cfs/{cfs}/status', [CallForSpeakersController::class, 'updateStatus'])
+        ->name('communities.cfs.update-status');
+
     // AJAX/API endpoints for community management
     Route::prefix('api')->group(function () {
 
@@ -175,8 +180,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/communities/{community}/cfs/{cfs}/link-event', [CallForSpeakersController::class, 'linkEvent']);
         Route::delete('/communities/{community}/cfs/{cfs}/unlink-event', [CallForSpeakersController::class, 'unlinkEvent']);
 
-        // CFS Status management
-        Route::patch('/communities/{community}/cfs/{cfs}/status', [CallForSpeakersController::class, 'updateStatus']);
+
 
         // Application management
         Route::get('/cfs/{cfs}/applications/{application}', [CfsApplicationController::class, 'show']);
