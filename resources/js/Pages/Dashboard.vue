@@ -4,6 +4,10 @@ import { Head, Link } from '@inertiajs/vue3';
 import { ref, onMounted, computed } from 'vue';
 import axios from 'axios';
 
+const props = defineProps({
+    communities: Array,
+});
+
 const accounts = ref([]);
 const calendars = ref([]);
 const upcomingEvents = ref([]);
@@ -13,7 +17,8 @@ const welcomeMessage = ref('');
 const stats = ref({
     totalEvents: 0,
     todayEvents: 0,
-    totalCalendars: 0
+    totalCalendars: 0,
+    totalCommunities: 0
 });
 const showGettingStarted = ref(true);
 
@@ -44,7 +49,8 @@ onMounted(async () => {
         stats.value = {
             totalEvents: upcomingEvents.value.length + todayEvents.value.length,
             todayEvents: todayEvents.value.length,
-            totalCalendars: calendars.value.length
+            totalCalendars: calendars.value.length,
+            totalCommunities: props.communities?.length || 0
         };
 
         if (accounts.value.length > 0) {
@@ -149,6 +155,10 @@ const hasNoAccounts = computed(() => {
 const hasNoEvents = computed(() => {
     return !isLoading.value && upcomingEvents.value.length === 0 && todayEvents.value.length === 0;
 });
+
+const hasNoCommunities = computed(() => {
+    return !props.communities || props.communities.length === 0;
+});
 </script>
 
 <template>
@@ -169,6 +179,15 @@ const hasNoEvents = computed(() => {
                             <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
                         </svg>
                         View Calendar
+                    </Link>
+                    <Link
+                        href="/communities"
+                        class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition ease-in-out duration-150"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                        </svg>
+                        Communities
                     </Link>
                     <Link
                         href="/help"
@@ -192,7 +211,7 @@ const hasNoEvents = computed(() => {
                             <div>
                                 <h3 class="text-xl font-bold mb-2">{{ welcomeMessage }}, {{ $page.props.auth.user.name }}!</h3>
                                 <p class="text-indigo-100">
-                                    Welcome to your centralized calendar management dashboard.
+                                    Manage your calendar, communities, and events from one place.
                                 </p>
                             </div>
                             <div class="hidden md:block">
@@ -206,7 +225,7 @@ const hasNoEvents = computed(() => {
                 </div>
 
                 <!-- Stats Overview -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
                     <div class="bg-white rounded-lg shadow overflow-hidden">
                         <div class="p-5 bg-gradient-to-r from-green-50 to-green-100 border-b border-green-200">
                             <div class="flex justify-between items-center">
@@ -248,14 +267,33 @@ const hasNoEvents = computed(() => {
                     <div class="bg-white rounded-lg shadow overflow-hidden">
                         <div class="p-5 bg-gradient-to-r from-purple-50 to-purple-100 border-b border-purple-200">
                             <div class="flex justify-between items-center">
-                                <h3 class="font-semibold text-purple-800">Connected Accounts</h3>
+                                <h3 class="font-semibold text-purple-800">My Communities</h3>
                                 <div class="bg-purple-200 text-purple-800 text-xl font-bold rounded-full h-10 w-10 flex items-center justify-center">
+                                    {{ stats.totalCommunities }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <Link href="/communities" class="text-purple-600 hover:text-purple-800 text-sm font-medium flex items-center">
+                                <span>Manage communities</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                            </Link>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow overflow-hidden">
+                        <div class="p-5 bg-gradient-to-r from-orange-50 to-orange-100 border-b border-orange-200">
+                            <div class="flex justify-between items-center">
+                                <h3 class="font-semibold text-orange-800">Connected Accounts</h3>
+                                <div class="bg-orange-200 text-orange-800 text-xl font-bold rounded-full h-10 w-10 flex items-center justify-center">
                                     {{ accounts.length }}
                                 </div>
                             </div>
                         </div>
                         <div class="p-4">
-                            <a href="/connect/google" class="text-purple-600 hover:text-purple-800 text-sm font-medium flex items-center">
+                            <a href="/connect/google" class="text-orange-600 hover:text-orange-800 text-sm font-medium flex items-center">
                                 <span>Connect Google account</span>
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
@@ -268,10 +306,56 @@ const hasNoEvents = computed(() => {
                 <!-- Loading State -->
                 <div v-if="isLoading" class="text-center py-12">
                     <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
-                    <p class="mt-4 text-gray-600">Loading your calendar data...</p>
+                    <p class="mt-4 text-gray-600">Loading your data...</p>
                 </div>
 
                 <div v-else>
+                    <!-- Communities Quick View -->
+                    <div v-if="!hasNoCommunities" class="mb-6 bg-white shadow-sm rounded-lg overflow-hidden">
+                        <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+                            <div class="flex justify-between items-center">
+                                <h3 class="font-semibold text-gray-800 flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-indigo-600" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                                    </svg>
+                                    My Communities
+                                </h3>
+                                <Link href="/communities" class="text-sm font-medium text-indigo-600 hover:text-indigo-900">
+                                    View All
+                                </Link>
+                            </div>
+                        </div>
+                        <div class="p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div
+                                    v-for="community in communities"
+                                    :key="community.id"
+                                    class="flex items-center p-4 border border-gray-200 rounded-lg hover:border-indigo-300 transition-colors"
+                                >
+                                    <img
+                                        :src="community.logo_url"
+                                        :alt="community.name"
+                                        class="w-10 h-10 rounded-full mr-3"
+                                    >
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-medium text-gray-900 truncate">
+                                            {{ community.name }}
+                                        </p>
+                                        <p class="text-xs text-gray-500">
+                                            {{ community.events_count }} events
+                                        </p>
+                                    </div>
+                                    <Link
+                                        :href="community.dashboard_url"
+                                        class="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
+                                    >
+                                        Manage
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- No Accounts Warning -->
                     <div v-if="hasNoAccounts" class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-md">
                         <div class="flex">
@@ -283,7 +367,7 @@ const hasNoEvents = computed(() => {
                             <div class="ml-3">
                                 <h3 class="text-sm font-medium text-yellow-800">No accounts connected</h3>
                                 <div class="mt-2 text-sm text-yellow-700">
-                                    <p>Connect your Google account to start syncing your calendars.</p>
+                                    <p>Connect your Google account to start syncing your calendars and using all features.</p>
                                 </div>
                                 <div class="mt-3">
                                     <a
@@ -332,12 +416,12 @@ const hasNoEvents = computed(() => {
                                                 </div>
                                             </div>
                                             <div>
-                        <span
-                            class="px-2 py-1 text-xs font-semibold rounded-full"
-                            :class="getEventStatusClass(event.starts_at)"
-                        >
-                          {{ getTimeRemaining(event.starts_at) }}
-                        </span>
+                                                <span
+                                                    class="px-2 py-1 text-xs font-semibold rounded-full"
+                                                    :class="getEventStatusClass(event.starts_at)"
+                                                >
+                                                    {{ getTimeRemaining(event.starts_at) }}
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
@@ -459,9 +543,18 @@ const hasNoEvents = computed(() => {
                                     </Link>
 
                                     <Link
-                                        href="/booking/settings"
+                                        href="/communities"
                                         class="flex items-center p-3 bg-green-50 hover:bg-green-100 rounded-md transition-colors">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                                            <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                                        </svg>
+                                        <span class="text-sm font-medium">Manage Communities</span>
+                                    </Link>
+
+                                    <Link
+                                        href="/booking/settings"
+                                        class="flex items-center p-3 bg-purple-50 hover:bg-purple-100 rounded-md transition-colors">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-600 mr-3" viewBox="0 0 20 20" fill="currentColor">
                                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
                                         </svg>
                                         <span class="text-sm font-medium">Booking Page Settings</span>
@@ -469,34 +562,25 @@ const hasNoEvents = computed(() => {
 
                                     <a
                                         href="/connect/google"
-                                        class="flex items-center p-3 bg-purple-50 hover:bg-purple-100 rounded-md transition-colors">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-600 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                                        class="flex items-center p-3 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 mr-3" viewBox="0 0 20 20" fill="currentColor">
                                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
                                         </svg>
                                         <span class="text-sm font-medium">Connect Account</span>
                                     </a>
-
-                                    <Link
-                                        href="/help"
-                                        class="flex items-center p-3 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 mr-3" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
-                                        </svg>
-                                        <span class="text-sm font-medium">Help Center</span>
-                                    </Link>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Getting Started Guide -->
-                    <div v-if="showGettingStarted" class="mt-6 bg-white shadow-sm rounded-lg overflow-hidden">
+                    <div v-if="showGettingStarted || hasNoCommunities" class="mt-6 bg-white shadow-sm rounded-lg overflow-hidden">
                         <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
                             <h3 class="font-semibold text-gray-800 flex items-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-indigo-600" viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" />
                                 </svg>
-                                Getting Started with Synqs
+                                {{ hasNoCommunities ? 'Get Started with Communities' : 'Getting Started' }}
                             </h3>
                         </div>
 
@@ -508,12 +592,19 @@ const hasNoEvents = computed(() => {
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                         </svg>
                                     </div>
-                                    <h3 class="text-lg font-medium text-gray-900 mb-2">1. Connect Your Account</h3>
-                                    <p class="text-sm text-gray-500">Start by connecting your Google account to sync your calendars.</p>
+                                    <h3 class="text-lg font-medium text-gray-900 mb-2">
+                                        {{ hasNoCommunities ? 'Create Your First Community' : '1. Connect Your Account' }}
+                                    </h3>
+                                    <p class="text-sm text-gray-500">
+                                        {{ hasNoCommunities ? 'Build your community for events and call for speakers.' : 'Start by connecting your Google account to sync your calendars.' }}
+                                    </p>
                                     <div class="mt-4">
-                                        <a href="/connect/google" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
-                                            Connect Google
-                                        </a>
+                                        <Link
+                                            :href="hasNoCommunities ? '/communities/create' : '/connect/google'"
+                                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                                        >
+                                            {{ hasNoCommunities ? 'Create Community' : 'Connect Google' }}
+                                        </Link>
                                     </div>
                                 </div>
 
@@ -523,11 +614,18 @@ const hasNoEvents = computed(() => {
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                         </svg>
                                     </div>
-                                    <h3 class="text-lg font-medium text-gray-900 mb-2">2. Choose Your Calendars</h3>
-                                    <p class="text-sm text-gray-500">Select which calendars you want to manage and display.</p>
+                                    <h3 class="text-lg font-medium text-gray-900 mb-2">
+                                        {{ hasNoCommunities ? 'Create Events & CFS' : '2. Choose Your Calendars' }}
+                                    </h3>
+                                    <p class="text-sm text-gray-500">
+                                        {{ hasNoCommunities ? 'Set up events and call for speakers for your community.' : 'Select which calendars you want to manage and display.' }}
+                                    </p>
                                     <div class="mt-4">
-                                        <Link href="/calendar" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
-                                            View Calendars
+                                        <Link
+                                            :href="hasNoCommunities ? '/help' : '/calendar'"
+                                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                                        >
+                                            {{ hasNoCommunities ? 'Learn More' : 'View Calendars' }}
                                         </Link>
                                     </div>
                                 </div>
@@ -538,11 +636,18 @@ const hasNoEvents = computed(() => {
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
                                     </div>
-                                    <h3 class="text-lg font-medium text-gray-900 mb-2">3. Set Up Booking Page</h3>
-                                    <p class="text-sm text-gray-500">Create a booking page so others can schedule meetings with you.</p>
+                                    <h3 class="text-lg font-medium text-gray-900 mb-2">
+                                        {{ hasNoCommunities ? 'Manage Your Community' : '3. Set Up Booking Page' }}
+                                    </h3>
+                                    <p class="text-sm text-gray-500">
+                                        {{ hasNoCommunities ? 'Review applications, manage speakers, and publish events.' : 'Create a booking page so others can schedule meetings with you.' }}
+                                    </p>
                                     <div class="mt-4">
-                                        <Link href="/booking/settings" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
-                                            Booking Settings
+                                        <Link
+                                            :href="hasNoCommunities ? '/communities' : '/booking/settings'"
+                                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                                        >
+                                            {{ hasNoCommunities ? 'View Communities' : 'Booking Settings' }}
                                         </Link>
                                     </div>
                                 </div>

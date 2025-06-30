@@ -61,4 +61,41 @@ class User extends Authenticatable
     {
         return $this->hasManyThrough(Booking::class, BookingPage::class);
     }
+
+    public function communities(): HasMany
+    {
+        return $this->hasMany(Community::class);
+    }
+
+    public function activeCommunities(): HasMany
+    {
+        return $this->hasMany(Community::class)->where('is_active', true);
+    }
+
+    public function communityEvents()
+    {
+        return $this->hasManyThrough(CommunityEvent::class, Community::class);
+    }
+
+    public function callsForSpeakers()
+    {
+        return $this->hasManyThrough(CallForSpeakers::class, Community::class);
+    }
+
+    public function ownsCommunity(Community $community): bool
+    {
+        return $this->id === $community->user_id;
+    }
+
+    public function canManageCommunity(Community $community): bool
+    {
+        // TODO: to be extended for multi-admin support later
+        return $this->ownsCommunity($community);
+    }
+
+    public function hasCommunitiesFeature(): bool
+    {
+        //TODO: to be extended for premium use
+        return true;
+    }
 }
