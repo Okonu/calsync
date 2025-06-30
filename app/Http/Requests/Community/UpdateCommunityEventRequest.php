@@ -49,7 +49,7 @@ class UpdateCommunityEventRequest extends FormRequest
             'speaker_requirements' => 'nullable|string|max:1000',
             'call_for_speakers_id' => [
                 'nullable',
-                Rule::exists('calls_for_speakers', 'id')->where('community_id', $community->id)
+                Rule::exists('call_for_speakers', 'id')->where('community_id', $community->id)
             ],
 
             // Sessions (for events that support session updates)

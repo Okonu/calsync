@@ -42,7 +42,7 @@ class CreateCommunityEventRequest extends FormRequest
             'requires_approval' => 'boolean',
             'is_public' => 'boolean',
             'speaker_requirements' => 'nullable|string|max:1000',
-            'call_for_speakers_id' => 'nullable|exists:calls_for_speakers,id',
+            'call_for_speakers_id' => 'nullable|exists:call_for_speakers,id',
 
             // Sessions
             'sessions' => 'nullable|array|max:20',

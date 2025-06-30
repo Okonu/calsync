@@ -18,7 +18,7 @@ class CreateCfsRequest extends FormRequest
 
         return [
             'title' => 'required|string|max:200',
-            'slug' => 'nullable|string|max:50|alpha_dash|unique:calls_for_speakers,slug,NULL,id,community_id,' . $community->id,
+            'slug' => 'nullable|string|max:50|alpha_dash|unique:call_for_speakers,slug,NULL,id,community_id,' . $community->id,
             'description' => 'nullable|string|max:2000',
             'guidelines' => 'nullable|string|max:2000',
             'opens_at' => 'nullable|date|after_or_equal:today',

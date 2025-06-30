@@ -25,7 +25,7 @@ class UpdateCfsRequest extends FormRequest
                 'string',
                 'max:50',
                 'alpha_dash',
-                Rule::unique('calls_for_speakers', 'slug')
+                Rule::unique('call_for_speakers', 'slug')
                     ->ignore($cfs->id)
                     ->where('community_id', $community->id)
             ],
