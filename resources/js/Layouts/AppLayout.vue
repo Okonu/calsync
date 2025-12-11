@@ -17,6 +17,7 @@ const showingNavigationDropdown = ref(false);
 const urls = {
     dashboard: '/dashboard',
     calendar: '/calendar',
+    communities: '/communities',
     bookingSettings: '/booking/settings',
     bookingList: '/booking/list',
     googleConnectRedirect: '/connect/google',
@@ -28,6 +29,10 @@ const user = computed(() => page.props.auth?.user || null);
 
 const isCurrentPath = (path) => {
     return window.location.pathname === path;
+};
+
+const isCommunitiesActive = () => {
+    return window.location.pathname.startsWith('/communities');
 };
 
 const logout = () => {
@@ -75,6 +80,9 @@ const logout = () => {
                                 </NavLink>
                                 <NavLink :href="urls.calendar" :active="isCurrentPath(urls.calendar)">
                                     Calendar
+                                </NavLink>
+                                <NavLink :href="urls.communities" :active="isCommunitiesActive()">
+                                    Communities
                                 </NavLink>
 
                                 <!-- Booking Dropdown -->
@@ -177,6 +185,9 @@ const logout = () => {
                         </ResponsiveNavLink>
                         <ResponsiveNavLink :href="urls.calendar" :active="isCurrentPath(urls.calendar)">
                             Calendar
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink :href="urls.communities" :active="isCommunitiesActive()">
+                            Communities
                         </ResponsiveNavLink>
 
                         <!-- Mobile Booking Links -->
