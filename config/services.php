@@ -44,4 +44,11 @@ return [
             'https://www.googleapis.com/auth/calendar.events.readonly',
         ],
     ],
+
+    'microsoft' => [
+        'client_id' => env('MICROSOFT_CLIENT_ID'),
+        'client_secret' => env('MICROSOFT_CLIENT_SECRET'),
+        'redirect' => env('MICROSOFT_REDIRECT_URI'),
+        'connect_redirect' => env('MICROSOFT_CONNECT_REDIRECT_URI'),
+    ],
 ];

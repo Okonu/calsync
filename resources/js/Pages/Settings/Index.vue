@@ -4,7 +4,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
-const googleAccounts = ref([]);
+const accounts = ref([]);
 const calendars = ref([]);
 const isLoading = ref(true);
 const showDeleteModal = ref(false);
@@ -21,13 +21,16 @@ async function loadData() {
         isLoading.value = true;
 
         const accountsResponse = await axios.get('/api/accounts');
-        googleAccounts.value = accountsResponse.data || [];
+        accounts.value = accountsResponse.data || [];
 
         const calendarsResponse = await axios.get('/api/calendars');
         calendars.value = calendarsResponse.data || [];
 
-        googleAccounts.value = googleAccounts.value.map(account => {
-            const accountCalendars = calendars.value.filter(cal => cal.google_account_id === account.id);
+        accounts.value = accounts.value.map(account => {
+            const accountCalendars = calendars.value.filter(cal => 
+                (account.provider === 'google' && cal.google_account_id === account.id) ||
+                (account.provider === 'microsoft' && cal.microsoft_account_id === account.id)
+            );
             return {
                 ...account,
                 calendars: accountCalendars
@@ -97,7 +100,7 @@ async function deleteAccount() {
     try {
         await axios.delete(`/api/accounts/${accountToDelete.value.id}`);
 
-        googleAccounts.value = googleAccounts.value.filter(
+        accounts.value = accounts.value.filter(
             account => account.id !== accountToDelete.value.id
         );
 
@@ -153,14 +156,23 @@ function formatDate(dateString) {
 
                 <!-- Actions Header -->
                 <div class="flex justify-between mb-6">
-                    <h3 class="text-lg font-medium text-gray-900">Manage Google Accounts</h3>
-                    <a href="/connect/google"
-                       class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 active:bg-indigo-800 focus:outline-none focus:border-indigo-900 focus:ring ring-indigo-300 disabled:opacity-25 transition ease-in-out duration-150">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                        Connect Account
-                    </a>
+                    <h3 class="text-lg font-medium text-gray-900">Manage Connected Accounts</h3>
+                    <div class="flex space-x-4">
+                        <a href="/connect/google"
+                           class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-25 transition ease-in-out duration-150">
+                            <svg class="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z"/>
+                            </svg>
+                            Google
+                        </a>
+                        <a href="/connect/microsoft"
+                           class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:border-blue-900 focus:ring ring-blue-300 disabled:opacity-25 transition ease-in-out duration-150">
+                            <svg class="h-4 w-4 mr-2" viewBox="0 0 23 23" fill="currentColor">
+                                <path d="M0 0h11v11H0zM12 0h11v11H12zM0 12h11v11H0zM12 12h11v11H12z"/>
+                            </svg>
+                            Microsoft
+                        </a>
+                    </div>
                 </div>
 
                 <!-- Loading State -->
@@ -172,12 +184,17 @@ function formatDate(dateString) {
                 </div>
 
                 <!-- No Accounts State -->
-                <div v-else-if="googleAccounts.length === 0" class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div v-else-if="accounts.length === 0" class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6 text-gray-600">
-                        <p class="mb-4">You don't have any Google accounts connected yet.</p>
-                        <a href="/connect/google" class="text-indigo-600 hover:text-indigo-800">
-                            Connect your first Google account to get started
-                        </a>
+                        <p class="mb-4">You don't have any accounts connected yet.</p>
+                        <div class="flex space-x-4">
+                            <a href="/connect/google" class="text-indigo-600 hover:text-indigo-800">
+                                Connect Google
+                            </a>
+                            <a href="/connect/microsoft" class="text-blue-600 hover:text-blue-800">
+                                Connect Microsoft
+                            </a>
+                        </div>
                     </div>
                 </div>
 
@@ -208,7 +225,7 @@ function formatDate(dateString) {
                             </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
-                            <tr v-for="account in googleAccounts" :key="account.id">
+                            <tr v-for="account in accounts" :key="account.id">
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex items-center">
                                         <div class="flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center"
@@ -222,7 +239,10 @@ function formatDate(dateString) {
                                                         Primary
                                                     </span>
                                             </div>
-                                            <div class="text-sm text-gray-500">{{ account.email }}</div>
+                                            <div class="text-sm text-gray-500">
+                                                {{ account.email }}
+                                                <span class="ml-2 text-xs text-gray-400">({{ account.provider }})</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </td>
@@ -268,11 +288,11 @@ function formatDate(dateString) {
                 </div>
 
                 <!-- Calendar Management Section -->
-                <div v-if="googleAccounts.length > 0" class="mt-8 bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div v-if="accounts.length > 0" class="mt-8 bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
                         <h3 class="text-lg font-medium text-gray-900 mb-4">Calendar Details</h3>
 
-                        <div v-for="account in googleAccounts" :key="`cal-${account.id}`" class="mb-6">
+                        <div v-for="account in accounts" :key="`cal-${account.id}`" class="mb-6">
                             <h4 class="text-md font-medium text-gray-800 mb-2 flex items-center">
                                 <div class="w-4 h-4 rounded-full mr-2" :style="{ backgroundColor: account.color }"></div>
                                 {{ account.name }} ({{ account.email }})
@@ -324,7 +344,7 @@ function formatDate(dateString) {
                             </h3>
                             <div class="mt-2">
                                 <p class="text-sm text-gray-500">
-                                    Are you sure you want to disconnect and delete this Google account?
+                                    Are you sure you want to disconnect and delete this account?
                                     All associated calendars and events will be removed from the application.
                                     This action cannot be undone.
                                 </p>

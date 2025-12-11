@@ -14,6 +14,8 @@ class Calendar extends Model
     protected $fillable = [
         'google_account_id',
         'google_id',
+        'microsoft_account_id',
+        'microsoft_id',
         'name',
         'color',
         'is_visible',
@@ -28,6 +30,11 @@ class Calendar extends Model
     public function googleAccount(): BelongsTo
     {
         return $this->belongsTo(GoogleAccount::class);
+    }
+
+    public function microsoftAccount(): BelongsTo
+    {
+        return $this->belongsTo(MicrosoftAccount::class);
     }
 
     public function events(): HasMany

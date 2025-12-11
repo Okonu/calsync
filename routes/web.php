@@ -8,6 +8,7 @@ use App\Http\Controllers\CommunityController;
 use App\Http\Controllers\CommunityEventController;
 use App\Http\Controllers\EventSessionController;
 use App\Http\Controllers\GoogleAuthController;
+use App\Http\Controllers\MicrosoftAuthController;
 use App\Http\Controllers\SettingsController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -78,6 +79,9 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('connect/google', [GoogleAuthController::class, 'redirectConnect'])->name('google.connect.redirect');
     Route::get('connect/google/callback', [GoogleAuthController::class, 'callbackConnect'])->name('google.connect.callback');
+
+    Route::get('connect/microsoft', [MicrosoftAuthController::class, 'redirectConnect'])->name('microsoft.connect.redirect');
+    Route::get('connect/microsoft/callback', [MicrosoftAuthController::class, 'callbackConnect'])->name('microsoft.connect.callback');
 
     Route::post('/logout', [GoogleAuthController::class, 'logout'])->name('logout');
 });
@@ -195,7 +199,7 @@ Route::middleware(['auth'])->group(function () {
     });
 });
 
-Route::get('/debug-communities', function() {
+Route::get('/debug-communities', function () {
     $user = auth()->user();
     if (!$user) {
         return 'Not logged in';
