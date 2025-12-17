@@ -33,7 +33,7 @@ jobs:
       run: php -r "file_exists('.env') || copy('.env.example', '.env');"
 
     - name: Install Dependencies
-      run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+      run: composer update -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
 
     - name: Generate key
       run: php artisan key:generate
@@ -94,7 +94,7 @@ jobs:
           cd /var/www/calsync
           git fetch origin
           git reset --hard origin/main
-          composer install --no-dev --optimize-autoloader
+          composer update --no-dev --optimize-autoloader
           npm ci --production
           npm run build
           php artisan migrate --force

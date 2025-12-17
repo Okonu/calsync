@@ -2,6 +2,8 @@
 
 I had called it CalSync initially but found the domain was already taken. I hope the naming gods forgive me for the one I chose.
 
+> CI/CD Pipeline Status: Testing automated deployment workflow
+
 Synqs is a comprehensive web application that allows users to sync multiple Google Calendar accounts in one place and create booking pages for others to schedule meetings with them.
 
 ## 🌟 Features
