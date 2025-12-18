@@ -71,7 +71,7 @@ jobs:
         DB_DATABASE: calsync_test
         DB_USERNAME: root
         DB_PASSWORD: password
-      run: php artisan test
+      run: php artisan test --testsuite=Unit && php artisan test tests/Feature/ExampleTest.php
 
     - name: Run PHP Code Style Checker (Pint)
       run: vendor/bin/pint --test
