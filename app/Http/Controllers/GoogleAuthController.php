@@ -165,14 +165,14 @@ class GoogleAuthController extends Controller
     {
         Log::info('Redirecting to Google for connecting additional account', [
             'user_id' => auth()->id(),
-            'connect_redirect' => env('GOOGLE_CONNECT_REDIRECT_URI')
+            'connect_redirect' => config('services.google.connect_redirect')
         ]);
 
         session(['auth_flow' => 'connect']);
 
         $params = [
             'client_id' => config('services.google.client_id'),
-            'redirect_uri' => env('GOOGLE_CONNECT_REDIRECT_URI'),
+            'redirect_uri' => config('services.google.connect_redirect'),
             'response_type' => 'code',
             'scope' => 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events.readonly email profile',
             'access_type' => 'offline',
@@ -203,7 +203,7 @@ class GoogleAuthController extends Controller
                 'client_id' => config('services.google.client_id'),
                 'client_secret' => config('services.google.client_secret'),
                 'code' => $code,
-                'redirect_uri' => env('GOOGLE_CONNECT_REDIRECT_URI'),
+                'redirect_uri' => config('services.google.connect_redirect'),
                 'grant_type' => 'authorization_code',
             ]);
 
