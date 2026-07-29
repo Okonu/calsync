@@ -20,9 +20,76 @@ const deleteConfirmationText = ref('');
 const isDeletingAccount = ref(false);
 const deleteAccountError = ref('');
 
+const apiTokens = ref([]);
+const isLoadingTokens = ref(true);
+const showCreateTokenModal = ref(false);
+const newTokenName = ref('');
+const isCreatingToken = ref(false);
+const createTokenError = ref('');
+const newlyCreatedToken = ref(null);
+
 onMounted(async () => {
     await loadData();
+    await loadApiTokens();
 });
+
+async function loadApiTokens() {
+    try {
+        isLoadingTokens.value = true;
+        const response = await axios.get('/api/developer/tokens');
+        apiTokens.value = response.data.tokens || [];
+    } catch (error) {
+        console.error('Error loading API keys:', error);
+    } finally {
+        isLoadingTokens.value = false;
+    }
+}
+
+function openCreateTokenModal() {
+    newTokenName.value = '';
+    createTokenError.value = '';
+    newlyCreatedToken.value = null;
+    showCreateTokenModal.value = true;
+}
+
+async function submitCreateToken() {
+    if (!newTokenName.value.trim()) {
+        createTokenError.value = 'Give this key a name so you remember what it\'s for.';
+        return;
+    }
+
+    isCreatingToken.value = true;
+    createTokenError.value = '';
+
+    try {
+        const response = await axios.post('/api/developer/tokens', {
+            name: newTokenName.value.trim(),
+        });
+
+        newlyCreatedToken.value = response.data.plain_text_token;
+        apiTokens.value.unshift(response.data.token);
+    } catch (error) {
+        console.error('Error creating API key:', error);
+        createTokenError.value = 'Failed to create the key. Please try again.';
+    } finally {
+        isCreatingToken.value = false;
+    }
+}
+
+async function revokeToken(token) {
+    if (!confirm(`Revoke the API key "${token.name}"? Anything using it will stop working immediately.`)) {
+        return;
+    }
+
+    try {
+        await axios.delete(`/api/developer/tokens/${token.id}`);
+        apiTokens.value = apiTokens.value.filter(t => t.id !== token.id);
+        showNotification('API key revoked', 'success');
+    } catch (error) {
+        console.error('Error revoking API key:', error);
+        showNotification('Failed to revoke API key', 'error');
+    }
+}
 
 async function loadData() {
     try {
@@ -382,6 +449,54 @@ async function submitDeleteAccount() {
                     </div>
                 </div>
 
+                <!-- Developer API -->
+                <div class="mt-8 bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-lg font-medium text-gray-900">Developer API</h3>
+                                <p class="mt-1 text-sm text-gray-500">
+                                    Generate an API key to check availability and create bookings on your booking
+                                    page from another app or site. See the
+                                    <a href="/docs" target="_blank" class="text-indigo-600 hover:text-indigo-800">docs</a>
+                                    for endpoints and examples.
+                                </p>
+                            </div>
+                            <button @click="openCreateTokenModal" type="button"
+                                    class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition ease-in-out duration-150 whitespace-nowrap">
+                                Generate new key
+                            </button>
+                        </div>
+
+                        <div v-if="isLoadingTokens" class="mt-4 text-sm text-gray-500">Loading keys&hellip;</div>
+
+                        <div v-else-if="apiTokens.length === 0" class="mt-4 text-sm text-gray-500">
+                            No API keys yet.
+                        </div>
+
+                        <table v-else class="mt-4 min-w-full divide-y divide-gray-200">
+                            <thead>
+                            <tr>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last used</th>
+                                <th class="px-3 py-2"></th>
+                            </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                            <tr v-for="token in apiTokens" :key="token.id">
+                                <td class="px-3 py-2 text-sm text-gray-900">{{ token.name }}</td>
+                                <td class="px-3 py-2 text-sm text-gray-500">{{ formatDate(token.created_at) }}</td>
+                                <td class="px-3 py-2 text-sm text-gray-500">{{ token.last_used_at ? formatDate(token.last_used_at) : 'Never' }}</td>
+                                <td class="px-3 py-2 text-right">
+                                    <button @click="revokeToken(token)" class="text-red-600 hover:text-red-900 text-sm">Revoke</button>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <!-- Danger Zone -->
                 <div class="mt-8 bg-white overflow-hidden shadow-sm sm:rounded-lg border border-red-200">
                     <div class="p-6">
@@ -501,6 +616,48 @@ async function submitDeleteAccount() {
                     <button @click="closeDeleteAccountModal" type="button" :disabled="isDeletingAccount"
                             class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50">
                         Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create API Key Modal -->
+        <div v-if="showCreateTokenModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-lg overflow-hidden shadow-xl transform transition-all sm:max-w-lg sm:w-full">
+                <div class="p-6">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">
+                        {{ newlyCreatedToken ? 'API key created' : 'Generate a new API key' }}
+                    </h3>
+
+                    <template v-if="!newlyCreatedToken">
+                        <p class="mt-2 text-sm text-gray-500">
+                            Give it a name so you know where it's used, e.g. "Mundly site".
+                        </p>
+                        <input v-model="newTokenName" type="text" placeholder="Key name"
+                               class="mt-3 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                               :disabled="isCreatingToken" @keyup.enter="submitCreateToken" />
+                        <p v-if="createTokenError" class="mt-2 text-sm text-red-600">{{ createTokenError }}</p>
+                    </template>
+
+                    <template v-else>
+                        <p class="mt-2 text-sm text-gray-500">
+                            Copy this key now — for your security, you won't be able to see it again.
+                        </p>
+                        <code class="mt-3 block w-full break-all rounded-md bg-gray-900 text-green-400 text-xs p-3">{{ newlyCreatedToken }}</code>
+                        <p class="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md p-2">
+                            Keep this secret and use it only from a server you control. Never embed it in
+                            client-side JavaScript on a public page.
+                        </p>
+                    </template>
+                </div>
+                <div class="bg-gray-50 px-6 py-3 flex flex-row-reverse gap-3">
+                    <button v-if="!newlyCreatedToken" @click="submitCreateToken" type="button" :disabled="isCreatingToken"
+                            class="inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm disabled:opacity-50">
+                        {{ isCreatingToken ? 'Creating…' : 'Create key' }}
+                    </button>
+                    <button @click="showCreateTokenModal = false" type="button"
+                            class="inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm">
+                        {{ newlyCreatedToken ? 'Done' : 'Cancel' }}
                     </button>
                 </div>
             </div>

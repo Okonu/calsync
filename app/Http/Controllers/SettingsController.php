@@ -171,4 +171,42 @@ class SettingsController extends Controller
             'cancelled_events' => $cancelledCount,
         ]);
     }
+
+    public function listApiTokens(Request $request)
+    {
+        $tokens = $request->user()->tokens()
+            ->orderByDesc('created_at')
+            ->get(['id', 'name', 'created_at', 'last_used_at']);
+
+        return response()->json(['tokens' => $tokens]);
+    }
+
+    public function createApiToken(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:100',
+        ]);
+
+        $token = $request->user()->createToken($request->name, ['booking-pages:book']);
+
+        return response()->json([
+            'token' => [
+                'id' => $token->accessToken->id,
+                'name' => $token->accessToken->name,
+                'created_at' => $token->accessToken->created_at,
+            ],
+            'plain_text_token' => $token->plainTextToken,
+        ], 201);
+    }
+
+    public function revokeApiToken(Request $request, $id)
+    {
+        $deleted = $request->user()->tokens()->where('id', $id)->delete();
+
+        if (!$deleted) {
+            return response()->json(['message' => 'Key not found.'], 404);
+        }
+
+        return response()->json(['success' => true]);
+    }
 }

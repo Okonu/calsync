@@ -315,6 +315,7 @@
                 <a href="{{ url('/') }}#features">Features</a>
                 <a href="{{ url('/') }}#how-it-works">How it works</a>
                 <a href="{{ url('/') }}#communities">Communities</a>
+                <a href="{{ route('docs') }}">Docs</a>
             </nav>
 
             <a href="/auth/google" class="nav-cta">Sign in with Google</a>
@@ -341,6 +342,7 @@
         <div class="footer-inner">
             <p>&copy; {{ date('Y') }} Synqs</p>
             <div class="footer-links">
+                <a href="{{ route('docs') }}">Docs</a>
                 <a href="{{ route('privacy-policy') }}">Privacy Policy</a>
                 <a href="{{ route('terms-of-service') }}">Terms of Service</a>
             </div>

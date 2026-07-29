@@ -64,6 +64,7 @@ onMounted(() => {
                     <a href="#features">Features</a>
                     <a href="#how-it-works">How it works</a>
                     <a href="#communities">Communities</a>
+                    <a href="/docs">Docs</a>
                 </nav>
 
                 <a href="/auth/google" class="nav-cta">Sign in with Google</a>
@@ -279,6 +280,7 @@ onMounted(() => {
             <div class="footer-inner">
                 <p>&copy; {{ new Date().getFullYear() }} Synqs</p>
                 <div class="footer-links">
+                    <a href="/docs">Docs</a>
                     <a href="/privacy-policy">Privacy Policy</a>
                     <a href="/terms-of-service">Terms of Service</a>
                 </div>

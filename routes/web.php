@@ -95,7 +95,14 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/api/accounts/{id}', [SettingsController::class, 'deleteAccount']);
     Route::get('/api/account/deletion-preview', [SettingsController::class, 'deletionPreview']);
     Route::delete('/api/account', [SettingsController::class, 'destroyAccount']);
+    Route::get('/api/developer/tokens', [SettingsController::class, 'listApiTokens']);
+    Route::post('/api/developer/tokens', [SettingsController::class, 'createApiToken']);
+    Route::delete('/api/developer/tokens/{id}', [SettingsController::class, 'revokeApiToken']);
 });
+
+Route::get('/docs', function () {
+    return view('pages.docs');
+})->name('docs');
 
 // Booking
 Route::middleware(['auth'])->group(function () {

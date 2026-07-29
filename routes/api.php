@@ -6,11 +6,19 @@ use App\Http\Controllers\Api\CalendarController;
 use App\Http\Controllers\Api\CommunityController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\V1\DeveloperBookingController;
 use App\Models\Booking;
 use App\Models\Calendar;
 use App\Services\GoogleCalendarService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+
+// Developer API (v1) - authenticated with a personal API key from Settings > Developer.
+// See /docs for the full guide.
+Route::prefix('v1')->middleware(['auth:sanctum', 'abilities:booking-pages:book', 'throttle:developer-api'])->group(function () {
+    Route::get('/booking-pages/{slug}/availability', [DeveloperBookingController::class, 'availability']);
+    Route::post('/booking-pages/{slug}/bookings', [DeveloperBookingController::class, 'createBooking']);
+});
 
 // Authentication routes
 Route::prefix('auth')->group(function () {
