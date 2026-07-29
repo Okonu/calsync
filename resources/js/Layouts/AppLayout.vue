@@ -20,6 +20,7 @@ const urls = {
     communities: '/communities',
     bookingSettings: '/booking/settings',
     bookingList: '/booking/list',
+    settings: '/settings',
     googleConnectRedirect: '/connect/google',
     logout: '/logout'
 };
@@ -147,6 +148,10 @@ const logout = () => {
                                             Manage Account
                                         </div>
 
+                                        <DropdownLink :href="urls.settings">
+                                            Settings
+                                        </DropdownLink>
+
                                         <!-- Connect Another Google Account Option -->
                                         <DropdownLink :href="urls.googleConnectRedirect">
                                             Connect Google Account
@@ -209,6 +214,10 @@ const logout = () => {
                         </div>
 
                         <div class="mt-3 space-y-1">
+                            <ResponsiveNavLink :href="urls.settings" :active="isCurrentPath(urls.settings)">
+                                Settings
+                            </ResponsiveNavLink>
+
                             <!-- Connect Google Account -->
                             <ResponsiveNavLink :href="urls.googleConnectRedirect" :active="isCurrentPath(urls.googleConnectRedirect)">
                                 Connect Google Account
