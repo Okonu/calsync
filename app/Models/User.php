@@ -52,6 +52,11 @@ class User extends Authenticatable
         return $this->hasMany(GoogleAccount::class);
     }
 
+    public function microsoftAccounts(): HasMany
+    {
+        return $this->hasMany(MicrosoftAccount::class);
+    }
+
     public function bookingPage()
     {
         return $this->hasOne(BookingPage::class);

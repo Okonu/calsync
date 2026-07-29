@@ -93,6 +93,8 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/api/accounts/{id}/status', [SettingsController::class, 'updateAccountStatus']);
     Route::post('/api/accounts/{id}/sync', [SettingsController::class, 'syncAccount']);
     Route::delete('/api/accounts/{id}', [SettingsController::class, 'deleteAccount']);
+    Route::get('/api/account/deletion-preview', [SettingsController::class, 'deletionPreview']);
+    Route::delete('/api/account', [SettingsController::class, 'destroyAccount']);
 });
 
 // Booking

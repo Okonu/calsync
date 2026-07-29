@@ -12,6 +12,14 @@ const accountToDelete = ref(null);
 const syncingAccounts = ref([]);
 const notification = ref(null);
 
+const showDeleteAccountModal = ref(false);
+const deletionPreview = ref(null);
+const isLoadingPreview = ref(false);
+const cancelCalendarEvents = ref(true);
+const deleteConfirmationText = ref('');
+const isDeletingAccount = ref(false);
+const deleteAccountError = ref('');
+
 onMounted(async () => {
     await loadData();
 });
@@ -128,6 +136,54 @@ function showNotification(message, type = 'info') {
 function formatDate(dateString) {
     const date = new Date(dateString);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+}
+
+async function openDeleteAccountModal() {
+    showDeleteAccountModal.value = true;
+    deleteAccountError.value = '';
+    deleteConfirmationText.value = '';
+    cancelCalendarEvents.value = true;
+    isLoadingPreview.value = true;
+
+    try {
+        const response = await axios.get('/api/account/deletion-preview');
+        deletionPreview.value = response.data;
+    } catch (error) {
+        console.error('Error loading deletion preview:', error);
+        deletionPreview.value = null;
+    } finally {
+        isLoadingPreview.value = false;
+    }
+}
+
+function closeDeleteAccountModal() {
+    if (isDeletingAccount.value) return;
+    showDeleteAccountModal.value = false;
+}
+
+async function submitDeleteAccount() {
+    if (deleteConfirmationText.value.trim().toUpperCase() !== 'DELETE') {
+        deleteAccountError.value = 'Type DELETE to confirm.';
+        return;
+    }
+
+    isDeletingAccount.value = true;
+    deleteAccountError.value = '';
+
+    try {
+        await axios.delete('/api/account', {
+            data: {
+                confirmation: deleteConfirmationText.value,
+                cancel_calendar_events: cancelCalendarEvents.value,
+            },
+        });
+
+        window.location.href = '/';
+    } catch (error) {
+        console.error('Error deleting account:', error);
+        deleteAccountError.value = error.response?.data?.message || 'Failed to delete your account. Please try again.';
+        isDeletingAccount.value = false;
+    }
 }
 </script>
 
@@ -325,10 +381,25 @@ function formatDate(dateString) {
                         </div>
                     </div>
                 </div>
+
+                <!-- Danger Zone -->
+                <div class="mt-8 bg-white overflow-hidden shadow-sm sm:rounded-lg border border-red-200">
+                    <div class="p-6">
+                        <h3 class="text-lg font-medium text-red-700">Danger Zone</h3>
+                        <p class="mt-1 text-sm text-gray-500">
+                            Permanently delete your Synqs account, connected calendar accounts, booking pages, and
+                            communities. This cannot be undone.
+                        </p>
+                        <button @click="openDeleteAccountModal" type="button"
+                                class="mt-4 inline-flex items-center px-4 py-2 border border-red-300 rounded-md font-semibold text-xs text-red-700 uppercase tracking-widest hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition ease-in-out duration-150">
+                            Delete my account
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Delete Confirmation Modal -->
+        <!-- Delete Connected Account Confirmation Modal -->
         <div v-if="showDeleteModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
             <div class="bg-white rounded-lg overflow-hidden shadow-xl transform transition-all sm:max-w-lg sm:w-full">
                 <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
@@ -359,6 +430,76 @@ function formatDate(dateString) {
                     </button>
                     <button @click="showDeleteModal = false" type="button"
                             class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Synqs Account Modal -->
+        <div v-if="showDeleteAccountModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-lg overflow-hidden shadow-xl transform transition-all sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <svg class="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        <div class="mt-3 w-full text-center sm:mt-0 sm:ml-4 sm:text-left">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900">
+                                Delete your Synqs account
+                            </h3>
+                            <div class="mt-2">
+                                <p class="text-sm text-gray-500">
+                                    This permanently deletes your profile, connected calendar accounts, booking
+                                    pages, and any communities you own. This cannot be undone.
+                                </p>
+                            </div>
+
+                            <div v-if="isLoadingPreview" class="mt-4 text-sm text-gray-500">
+                                Checking your account&hellip;
+                            </div>
+
+                            <ul v-else-if="deletionPreview" class="mt-4 text-sm text-gray-600 list-disc list-inside space-y-1">
+                                <li v-if="deletionPreview.google_accounts">{{ deletionPreview.google_accounts }} connected Google account(s)</li>
+                                <li v-if="deletionPreview.microsoft_accounts">{{ deletionPreview.microsoft_accounts }} connected Microsoft account(s)</li>
+                                <li v-if="deletionPreview.communities">{{ deletionPreview.communities }} community(ies) you own</li>
+                                <li v-if="deletionPreview.upcoming_bookings_with_events">
+                                    {{ deletionPreview.upcoming_bookings_with_events }} upcoming booking(s) with a calendar event
+                                </li>
+                            </ul>
+
+                            <div v-if="deletionPreview && deletionPreview.upcoming_bookings_with_events > 0" class="mt-4 bg-amber-50 border border-amber-200 rounded-md p-3">
+                                <label class="flex items-start space-x-2">
+                                    <input type="checkbox" v-model="cancelCalendarEvents"
+                                           class="mt-0.5 rounded border-gray-300 text-red-600 focus:ring-red-500" />
+                                    <span class="text-sm text-amber-900">
+                                        Also cancel the calendar events created by your upcoming bookings, and notify
+                                        the guests. If left unchecked, those events stay on your connected calendars.
+                                    </span>
+                                </label>
+                            </div>
+
+                            <div class="mt-4">
+                                <label class="block text-sm font-medium text-gray-700">
+                                    Type <span class="font-mono font-semibold">DELETE</span> to confirm
+                                </label>
+                                <input v-model="deleteConfirmationText" type="text"
+                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm"
+                                       :disabled="isDeletingAccount" />
+                                <p v-if="deleteAccountError" class="mt-2 text-sm text-red-600">{{ deleteAccountError }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button @click="submitDeleteAccount" type="button" :disabled="isDeletingAccount"
+                            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50">
+                        {{ isDeletingAccount ? 'Deleting…' : 'Permanently delete my account' }}
+                    </button>
+                    <button @click="closeDeleteAccountModal" type="button" :disabled="isDeletingAccount"
+                            class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50">
                         Cancel
                     </button>
                 </div>
